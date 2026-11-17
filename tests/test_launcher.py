@@ -55,6 +55,14 @@ class LauncherTests(unittest.TestCase):
         for file in (ROOT / 'lib').glob('*.py'):
             ast.parse(file.read_text(), filename=str(file))
         self.run_command('node', '--check', str(ROOT / 'lib/overlay.js'))
+        ps1 = (ROOT / 'bin/agy-zh.ps1').read_text()
+        self.assertNotIn('return ,$pids', ps1)
+        self.assertNotIn('/IM Antigravity.exe', ps1)
+        for line in ps1.splitlines():
+            if 'taskkill.exe' in line:
+                self.assertIn('try {', line)
+            if '.GetAwaiter().GetResult()' in line:
+                self.assertRegex(line.strip(), r'^\$[A-Za-z0-9_:]+\s*=')
         with tempfile.TemporaryDirectory(prefix='agy-build-') as tmp:
             base = Path(tmp, 'base.js')
             # Test the existing anchor-mismatch fallback without using the network.

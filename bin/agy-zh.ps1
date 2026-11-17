@@ -196,7 +196,7 @@ function Get-SameSessionAntigravityPids {
             Where-Object { $_.SessionId -eq $mySession } |
             ForEach-Object { [int]$_.Id }
     )
-    return ,$pids
+    return $pids
 }
 
 function Test-VisibleWindowForPids {
@@ -272,7 +272,7 @@ function Stop-AntigravityProcessesByIds {
     Stop-Process -Id $TargetPids -Force -ErrorAction SilentlyContinue
     foreach ($id in $TargetPids) {
         if (Get-Process -Id $id -ErrorAction SilentlyContinue) {
-            & taskkill.exe /F /PID $id 2>$null | Out-Null
+            try { & taskkill.exe /F /PID $id 2>$null | Out-Null } catch {}
         }
     }
     for ($i = 0; $i -lt 25; $i++) {
@@ -296,15 +296,7 @@ function Prepare-AntigravityForZhLaunch {
             $pidText = ($pids -join ', ')
             Write-Host "$TagWarn $(Resolve-ZhText '\u68c0\u6d4b\u5230 Antigravity \u65e0\u754c\u9762\u540e\u53f0\u8fdb\u7a0b') (PID: $pidText)$(Resolve-ZhText '\uff0c\u6b63\u5728\u81ea\u52a8\u6e05\u7406...')"
         }
-        & taskkill.exe /IM Antigravity.exe 2>$null | Out-Null
-        for ($i = 0; $i -lt 4; $i++) {
-            if (@(Get-SameSessionAntigravityPids).Count -eq 0) { return $true }
-            Start-Sleep -Milliseconds 200
-        }
-        $rem = @(Get-SameSessionAntigravityPids)
-        if ($rem.Count -gt 0 -and -not (Test-VisibleWindowForPids -TargetPids $rem)) {
-            Stop-AntigravityProcessesByIds -TargetPids $rem
-        }
+        Stop-AntigravityProcessesByIds -TargetPids $pids
         return $true
     }
 
@@ -318,7 +310,9 @@ function Prepare-AntigravityForZhLaunch {
         Write-Host "$TagWarn $(Resolve-ZhText '\u6b63\u5728\u8bf7\u6c42\u5df2\u8fd0\u884c\u7684 Antigravity \u4fdd\u5b58\u72b6\u6001\u5e76\u9000\u51fa...')"
     }
 
-    & taskkill.exe /IM Antigravity.exe 2>$null | Out-Null
+    foreach ($id in $pids) {
+        try { & taskkill.exe /PID $id 2>$null | Out-Null } catch {}
+    }
     for ($i = 0; $i -lt 25; $i++) {
         $cur = @(Get-SameSessionAntigravityPids)
         if ($cur.Count -eq 0) { return $true }
@@ -395,7 +389,7 @@ function Connect-LocalWebSocket {
     try { $ws.Options.Proxy = $null } catch {}
     $cts = [System.Threading.CancellationTokenSource]::new(5000)
     try {
-        $ws.ConnectAsync([Uri]$WsUrl, $cts.Token).GetAwaiter().GetResult()
+        $null = $ws.ConnectAsync([Uri]$WsUrl, $cts.Token).GetAwaiter().GetResult()
         return $ws
     } catch {
         $ws.Dispose()
@@ -426,7 +420,7 @@ function Invoke-CdpWsCommand {
     $recvSeg = [System.ArraySegment[byte]]::new($recvBuf)
     $ms = [System.IO.MemoryStream]::new()
     try {
-        $Ws.SendAsync($sendSeg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $cts.Token).GetAwaiter().GetResult()
+        $null = $Ws.SendAsync($sendSeg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $cts.Token).GetAwaiter().GetResult()
         while ($true) {
             $ms.SetLength(0)
             do {
@@ -566,7 +560,7 @@ function Start-CdpWatchLoop {
         $dSeg = [System.ArraySegment[byte]]::new($dBytes)
         $dCts = [System.Threading.CancellationTokenSource]::new(3000)
         try {
-            $bws.SendAsync($dSeg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $dCts.Token).GetAwaiter().GetResult()
+            $null = $bws.SendAsync($dSeg, [System.Net.WebSockets.WebSocketMessageType]::Text, $true, $dCts.Token).GetAwaiter().GetResult()
         } finally {
             $dCts.Dispose()
         }

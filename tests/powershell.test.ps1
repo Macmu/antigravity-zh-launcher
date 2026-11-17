@@ -6,6 +6,9 @@ foreach ($file in @('install.ps1','uninstall.ps1','bin/agy-zh.ps1','lib/options.
     if ($errors.Count) { throw "$file : $($errors.Message -join '; ')" }
     Write-Host "PASS syntax: $file"
 }
+$psLauncher = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'bin/agy-zh.ps1')
+if ($psLauncher -match 'return\s*,\s*\$pids') { throw 'Nested PID array regression in bin/agy-zh.ps1' }
+if ($psLauncher -match '/IM\s+Antigravity\.exe') { throw 'Unscoped /IM taskkill regression in bin/agy-zh.ps1' }
 . (Join-Path $root 'lib/options.ps1')
 foreach ($lang in @('zh-CN','zh-TW','ja','ko','es','fr','de','ru','pt-BR')) {
     $result = Read-AgyOptions -Arguments @('--lang',$lang,'--dry-run') -Switches @('--dry-run')
