@@ -1,4 +1,4 @@
-﻿& {
+& {
     $ErrorActionPreference = 'Stop'
     try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
     try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catch {}

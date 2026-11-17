@@ -1,5 +1,6 @@
-﻿& {
+& {
     $ErrorActionPreference = 'Stop'
+    try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction SilentlyContinue } catch {}
     try { [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false) } catch {}
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $RepoRawBase = if ($env:AGY_ZH_REPO_RAW) { $env:AGY_ZH_REPO_RAW } else { 'https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main' }
@@ -17,7 +18,7 @@
         $options = Read-AgyOptions -Arguments $args -Switches @('--update-engine','-UpdateEngine','--no-shortcut','-NoShortcut','--dry-run','-DryRun')
         if ($options.Help) {
             Write-Host 'install.ps1 [--lang <code>] [--update-engine] [--no-shortcut] [--dry-run]'
-            Write-Host 'Languages: zh-CN zh-TW ja ko es fr de ru pt-BR. Default: zh-CN / Antigravity 中文'
+            Write-Host ("Languages: zh-CN zh-TW ja ko es fr de ru pt-BR. Default: zh-CN / Antigravity " + [regex]::Unescape('\u4e2d\u6587'))
             return
         }
         $Lang = $options.Lang
@@ -85,8 +86,8 @@
                 [Environment]::SetEnvironmentVariable('Path', (($segments + $BinDir) -join ';'), $scope)
             }
         }
-        Write-Host "[成功] $($meta.appName) ($Lang). Start: $($meta.command) start"
-        Write-Host '[信息] Prompt 插件默认关闭，原版应用文件保持不变。'
+        Write-Host "$([regex]::Unescape('[\u6210\u529f]')) $($meta.appName) ($Lang). Start: $($meta.command) start"
+        Write-Host ([regex]::Unescape('[\u4fe1\u606f] Prompt \u63d2\u4ef6\u9ed8\u8ba4\u5173\u95ed\uff0c\u539f\u7248\u5e94\u7528\u6587\u4ef6\u4fdd\u6301\u4e0d\u53d8\u3002'))
     } finally {
         if ($tempRoot -and (Test-Path $tempRoot)) { Remove-Item -Recurse -Force $tempRoot }
     }
