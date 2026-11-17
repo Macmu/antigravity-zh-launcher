@@ -18,15 +18,19 @@ def main():
     elif action == 'build':
         output = pathlib.Path(sys.argv[3])
         locale = json.loads((root / 'locales' / (code + '.json')).read_text(encoding='utf-8'))
+        overlay_tpl = (root / 'lib/overlay.js').read_text(encoding='utf-8')
+        i18n_layer = overlay_tpl.replace('/*__AGY_LOCALE__*/', json.dumps(locale, ensure_ascii=True))
         if code == 'zh-CN':
-            # Retain the original Chinese enhancement behavior and cache filenames.
+            # Retain the original Chinese enhancement behavior and layer expanded zh-CN dictionary/rules.
             subprocess.run([sys.executable, str(root / 'lib/zh-overlay.py'), sys.argv[4],
-                            str(output), 'agy-zh-v5', sys.argv[5]], check=True)
-            script = output.read_text(encoding='utf-8')
-            script = 'window.__antigravityZhCustom = ' + json.dumps(list(locale['phrases'].items()), ensure_ascii=True) + ';\n' + script
+                            str(output), 'agy-zh-v6', sys.argv[5]], check=True)
+            base_script = output.read_text(encoding='utf-8')
+            if '/*__AGY_ZH_I18N_LAYER__*/' not in base_script:
+                script = base_script.rstrip() + '\n/*__AGY_ZH_I18N_LAYER__*/\n' + i18n_layer
+            else:
+                script = base_script
         else:
-            script = (root / 'lib/overlay.js').read_text(encoding='utf-8').replace(
-                '/*__AGY_LOCALE__*/', json.dumps(locale, ensure_ascii=True))
+            script = i18n_layer
         output.write_text(script, encoding='utf-8')
     else:
         raise ValueError('Unknown action: ' + action)

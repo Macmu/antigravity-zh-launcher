@@ -1,81 +1,53 @@
 [简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [繁體中文](README.zh-TW.md)
 
-# Antigravity 多言語ランチャー
+# Antigravity 非破壊・多言語ランチャー（日本語対応）
 
-Antigravity に言語別の起動アイコン、UI 翻訳、AI の言語ルールを追加します。引数なしのインストールは従来どおり **zh-CN / Antigravity 中文** です。既存の `agy-zh` コマンドとパスを維持し、元のアプリのファイルは変更しません。
+> **対応 OS**：macOS / Windows（標準スクリプトのみ・**Node.js 不要**）  
+> **日本語化範囲**：メイン画面、設定パネル、MCP / プラグインマーケット、Skills & Rules、オートメーション、ツールチップ、初回案内ダイアログ ＋ **AI の思考プロセス・回答の日本語化**
+
+`app.asar` の書き換えや再署名を一切行わず、元の英語版 `Antigravity` を無傷のまま残して **「Antigravity 日本語」** アイコンを追加します。macOS のコード署名を壊さず、本体の自動アップデートでも上書きされません。
 
 ![Antigravity 日本語 UI](docs/assets/real-ui-ja.png)
 
-## インストール
+## ⚡ 従来の `app.asar` パッチ方式との違い
 
-先に Antigravity をインストールしてください。macOS では Bash、Python 3、curl、Windows では標準の Windows PowerShell 5.1 を使用します。実行時に Node.js は不要です。
+| 比較項目 | 従来の `app.asar` 書き換え型 | 本プロジェクト (`antigravity-zh-launcher`) |
+| :--- | :--- | :--- |
+| **コード署名と安全性** | アプリ本体を改変するため macOS で署名エラーのリスクあり | **本体ファイル無改変**・Google 公式のコード署名を完全維持 |
+| **本体アップデート耐性** | アップデートのたびに上書きされ再パッチが必要 | **アップデート競合なし**・そのまま継続利用可能 |
+| **チャット・コード保護** | チャット内やコード中の英単語まで誤翻訳されることがある | **DOM 境界を厳密に分離**（ユーザー発言・コード・エディタは翻訳しない） |
+| **AI の思考・返答言語** | UI のみ翻訳（AI の思考やプランが英語に戻りがち） | **専用プロンプトルール連動**で思考ログ・要約・回答まで日本語に統一 |
+| **英語版との併用** | 上書き型のため切り替えにアンインストールが必要 | **デュアルアイコン並存**（元の英語版と日本語版をいつでも使い分け） |
 
-ローカルリポジトリから：
+## 🚀 ワンライナー導入（日本語 `ja`）
 
-```bash
-bash install.sh --lang ja
-```
+先に公式の [Google Antigravity](https://antigravity.google) をインストールしてください（Node.js は不要です）。
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 --lang ja
-```
-
-リモートインストール（日本語。`--lang ja` を省略すると簡体字中国語）：
-
+**macOS：**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.sh | bash -s -- --lang ja
 ```
 
+**Windows PowerShell：**
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.ps1))) --lang ja
 ```
 
-| Code | Language / 语言 | Entry | CLI |
-| --- | --- | --- | --- |
-| `zh-CN` | 简体中文（默认） | Antigravity 中文 | `agy-zh` |
-| `zh-TW` | 繁體中文 | Antigravity 繁體中文 | `agy-zh-tw` |
-| `ja` | 日本語 | Antigravity 日本語 | `agy-ja` |
-| `ko` | 한국어 | Antigravity 한국어 | `agy-ko` |
-| `es` | Español | Antigravity Español | `agy-es` |
-| `fr` | Français | Antigravity Français | `agy-fr` |
-| `de` | Deutsch | Antigravity Deutsch | `agy-de` |
-| `ru` | Русский | Antigravity Русский | `agy-ru` |
-| `pt-BR` | Português (Brasil) | Antigravity Português | `agy-pt-br` |
+ローカルクローンから導入する場合：`bash install.sh --lang ja` / `powershell -ExecutionPolicy Bypass -File .\install.ps1 --lang ja`
 
-## 起動とアンインストール
+## 🛠️ 使い方・アンインストール
 
-言語別のアイコンを共存できます。Antigravity のデスクトップセッションは共通のため、言語を切り替えると前の注入プロセスを停止し、選択した言語のルールだけを有効にします。終了時にはプラグインを無効にします。元の英語版に戻る場合は、翻訳セッションを終了してから元のアイコンで起動してください。
+- **起動**：アプリケーションフォルダ / デスクトップの **`Antigravity 日本語`** アイコン、または `agy-ja start` で起動します。
+- **元の英語版に戻す**：セッション終了後に元の **`Antigravity`** アイコンから起動すると、日本語プロンプト設定も自動でオフになります。
+- **他言語の追加**：`zh-CN` / `zh-TW` / `ja` / `ko` / `es` / `fr` / `de` / `ru` / `pt-BR` の 9 言語に対応。
 
 ```bash
-agy-zh --lang ja start
-agy-zh --lang ja status
-agy-zh --lang ja prompt status
-bash uninstall.sh --lang ja --purge
+# アンインストール（macOS）
+curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/uninstall.sh | bash -s -- --lang ja --purge
 ```
-
 ```powershell
-agy-zh --lang ja start
-powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 --lang ja --purge
+# アンインストール（Windows PowerShell）
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/uninstall.ps1))) --lang ja --purge
 ```
 
-引数なしでは簡体字中国語だけを削除します。`--lang` で削除する言語を指定してください。最後の言語を削除したときに共通ランタイムも削除します。`--purge` は該当するキャッシュも削除します。他の言語のアイコンは維持されます。
-
-`--no-shortcut` · `--update-engine` · `--dry-run` · `--help`
-
-Windows では `-Lang`、`-NoShortcut`、`-UpdateEngine`、`-DryRun` も使用できます。既存の `AGY_ZH_*` と `GEMINI_CONFIG_DIR` 設定も維持されます。
-
-## 構成と検証
-
-`locales/index.json` で言語、アイコン名、コマンド、プラグインを管理します。9 言語の JSON は共通の翻訳キーを持ち、基本的な IDE 操作、エージェント操作、ツールの状態を収録しています。挨拶はテンプレート、相対時刻は `Intl.RelativeTimeFormat` を使用します。
-
-簡体字中国語は従来の上流辞書と補強処理（`lib/zh-overlay.*`）を維持し、他の言語は `lib/overlay.js` を共有します。コード、ユーザー入力、会話タイトル、回答本文は翻訳対象外です。未収録の文言や今後追加される UI は原文で表示されます。公式言語パックではありません。
-
-言語ルールは計画、表示可能な推論の要約、ツールの要約、回答を日本語にするよう促します。コードやパス、元のエラーは保持します。モデルの遵守や内部の思考言語は保証されません。
-
-```bash
-python3 tests/test_launcher.py
-node tests/overlay.test.js
-# Windows PowerShell: & .\tests\powershell.test.ps1
-```
-
-[MIT License](LICENSE) · [Upstream Chinese dictionary / 原有中文词库](https://github.com/yuexps/Antigravity-Hans) · [CLI details](docs/usage.en.md)
+[公式サイト](https://hub.guuguo.top/antigravity-zh) · [MIT License](LICENSE) · [CLI 詳細](docs/usage.en.md)

@@ -1,13 +1,46 @@
 [简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [繁體中文](README.zh-TW.md)
 
-# Antigravity 多语言启动器
+# Antigravity 多语言无损启动器 (`antigravity-zh-launcher`)
 
-为 Antigravity 提供独立语言入口、界面翻译和 AI 语言规则。无参数安装仍为 **zh-CN / Antigravity 中文**，原有 `agy-zh` 命令、缓存与插件路径兼容。原版应用文件保持不变。
+> **适用系统**：macOS & Windows（内置系统原生脚本，**零 Node.js 运行时依赖**）  
+> **覆盖范围**：软件主界面、设置面板、MCP / 插件市场、Skills & Rules、Agents / 自动化、悬浮提示 (Tooltip)、首次协议引导页 + **AI 思考过程与回答全链路本地化**  
+> **支持语言**：9 国语言（简体中文 / 繁體中文 / 日本語 / 한국어 / Español / Français / Deutsch / Русский / Português）
 
-![Antigravity zh-CN UI](docs/assets/real-ui-zh.png)
+不解包、不改写 `app.asar`、不重签名破坏官方安装包。为你生成一个独立的「**Antigravity 中文**」（或任意目标语言）启动图标，与原版英文 `Antigravity` 双图标并存、随时切换，官方每次自动升级都不失效。
+
+---
+
+## ⚡ 为什么选择「无损启动器」而不是传统 `app.asar` 汉化补丁？
+
+| 对比维度 | 传统改包方案（解包重写 `app.asar`） | 本项目 `antigravity-zh-launcher` |
+| :--- | :--- | :--- |
+| **原版安全性与签名** | 改写官方包体，macOS 需强制重签名，易触发 Gatekeeper 损坏拦截 | **100% 零修改原版文件**，保留 Google 官方代码签名 |
+| **应对官方版本更新** | Antigravity 每次升级都会覆盖 `app.asar`，必须重新打补丁 | **升级零冲突**，外挂启动器自动生效，无需重复折腾 |
+| **聊天与代码防误伤** | 全局子串/短词替换，**容易把对话气泡和代码里的英文误翻成中文** | **严格 DOM 边界隔离**，跳过用户消息、代码块、编辑器与回复正文 |
+| **AI 思考与输出语言** | 只汉化按钮菜单，AI 思考过程、计划书和回答仍经常飘回英文 | **联动全局语言规则插件**，界面 + 思考链路 + 终端摘要 + 回答统一语言 |
+| **原版英文对照需求** | 单包覆盖，想看英文原词必须先卸载还原再重启 | **原版与本地化双图标独立并存**，随时切回原版英文 |
+| **多语言与运行依赖** | 通常需先安装 Node.js 环境，仅支持中繁 | **零 Node.js 依赖**（macOS Bash+Python / Win 原生 PowerShell），支持 **9 国语言** |
+
+---
+
+## 📸 实机效果展示
+
+### 1. 主工作台 + AI 思考与工具链路全中文
+![Antigravity 主界面与 AI 中文思考实拍](docs/assets/real-ui-zh.png)
+
+### 2. 设置面板（外观 / 执行 / 权限 / 快捷键 / 模型额度）深度汉化
+![Antigravity 设置面板汉化实拍](docs/assets/real-settings-zh.png)
+
+### 3. 自定义面板（插件市场 / MCP 服务器 / Skills & Rules / 智能体）
+![Antigravity 插件市场与 MCP 面板实拍](docs/assets/real-mcp-zh.png)
+
+### 4. 首次启动引导协议页 & 原版双图标独立并存
+| 首次启动协议与设置引导 | 原版与本地化双图标并存 |
+| --- | --- |
+| ![首次启动引导页汉化](docs/assets/real-welcome-zh.png) | ![原版与中文双图标](docs/assets/real-dual-icons.png) |
 
 <details>
-<summary>更多语言实拍截图（繁體中文 / 日本語 / 한국어 / Español / Français / Deutsch / Русский / Português）</summary>
+<summary>🌍 点击展开其余 8 国语言实机截图（繁體中文 / 日本語 / 한국어 / Español / Français / Deutsch / Русский / Português）</summary>
 
 | 日本語 (`ja`) | 한국어 (`ko`) |
 | --- | --- |
@@ -27,81 +60,86 @@
 
 </details>
 
-## 安装
+---
 
-默认简体中文的一行安装命令继续有效：
+## 🚀 一行命令极速安装
 
+安装前请先安装官方 [Google Antigravity](https://antigravity.google)。无需安装 Node.js。
+
+### 默认安装（简体中文 `Antigravity 中文`）
+
+**macOS（终端运行）：**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.sh | bash
 ```
 
+**Windows（PowerShell 运行）：**
 ```powershell
 irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.ps1 | iex
 ```
 
-安装前先安装 Antigravity。macOS 需要 Bash、Python 3、curl；Windows 使用系统自带 Windows PowerShell 5.1。无需 Node.js 或外部可执行引擎。
+### 安装其他语言入口（以日语 `ja` 为例，9 国语言可同时并存）
 
-从本地仓库安装：
-
-```bash
-bash install.sh --lang zh-CN
-```
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 --lang zh-CN
-```
-
-远程安装（示例：日语；省略 `--lang ja` 即为简体中文）：
-
+**macOS：**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.sh | bash -s -- --lang ja
 ```
 
+**Windows PowerShell：**
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.ps1))) --lang ja
 ```
 
-| Code | Language / 语言 | Entry | CLI |
-| --- | --- | --- | --- |
-| `zh-CN` | 简体中文（默认） | Antigravity 中文 | `agy-zh` |
-| `zh-TW` | 繁體中文 | Antigravity 繁體中文 | `agy-zh-tw` |
-| `ja` | 日本語 | Antigravity 日本語 | `agy-ja` |
-| `ko` | 한국어 | Antigravity 한국어 | `agy-ko` |
-| `es` | Español | Antigravity Español | `agy-es` |
-| `fr` | Français | Antigravity Français | `agy-fr` |
-| `de` | Deutsch | Antigravity Deutsch | `agy-de` |
-| `ru` | Русский | Antigravity Русский | `agy-ru` |
-| `pt-BR` | Português (Brasil) | Antigravity Português | `agy-pt-br` |
+| 语言代码 (`--lang`) | 语言名称 | 生成的桌面/启动台入口 | 命令行别名 |
+| :--- | :--- | :--- | :--- |
+| `zh-CN` | 简体中文（默认） | `Antigravity 中文` | `agy-zh` |
+| `zh-TW` | 繁體中文 | `Antigravity 繁體中文` | `agy-zh-tw` |
+| `ja` | 日本語 | `Antigravity 日本語` | `agy-ja` |
+| `ko` | 한국어 | `Antigravity 한국어` | `agy-ko` |
+| `es` | Español | `Antigravity Español` | `agy-es` |
+| `fr` | Français | `Antigravity Français` | `agy-fr` |
+| `de` | Deutsch | `Antigravity Deutsch` | `agy-de` |
+| `ru` | Русский | `Antigravity Русский` | `agy-ru` |
+| `pt-BR` | Português (Brasil) | `Antigravity Português` | `agy-pt-br` |
 
-## 使用与卸载
+---
 
-每种语言可重复安装并保留独立图标。Antigravity 共用一个桌面会话，切换语言时会停止上一语言的注入器，并只启用所选 Prompt 插件。关闭本地化会话后插件自动关闭。切回原版请先退出本地化会话，再打开原版入口。
+## 🛠️ 日常使用、更新与无痕卸载
 
+- **日常启动**：直接从 macOS「应用程序 / 启动台」或 Windows「桌面 / 开始菜单」点击 **`Antigravity 中文`**（或对应语言图标）即可。
+- **切回纯正英文原版**：退出当前会话后，直接点击原本的 **`Antigravity`** 图标——注入器与中文 Prompt 规则会自动关闭，100% 原生英文体验。
+- **刷新最新词库**：重新运行上面的安装命令，或执行 `agy-zh build-overlay --force`。
+
+**常用 CLI 命令：**
 ```bash
-agy-zh --lang zh-CN start
-agy-zh --lang zh-CN status
-agy-zh --lang zh-CN prompt status
-bash uninstall.sh --lang zh-CN --purge
+agy-zh status                # 查看当前本地化状态与进程信息
+agy-zh prompt on|off|status  # 单独开关或查看 AI 语言规则插件
+agy-zh build-overlay --force # 强制重新构建最新覆盖词库脚本
 ```
 
+**一键干净卸载：**
+```bash
+# macOS（卸载简体中文并清理缓存；其他已安装语言不受影响）
+curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/uninstall.sh | bash -s -- --lang zh-CN --purge
+```
 ```powershell
-agy-zh --lang zh-CN start
-powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 --lang zh-CN --purge
+# Windows PowerShell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/uninstall.ps1))) --lang zh-CN --purge
 ```
 
-卸载默认只移除简体中文；`--lang` 只移除指定语言。最后一种语言卸载后清理共享运行时。`--purge` 同时清理对应缓存；不会删除其他语言入口。
+本地仓库安装/卸载同样支持：`bash install.sh --lang zh-CN`、`bash uninstall.sh --lang zh-CN --purge`（附加参数：`--no-shortcut`、`--update-engine`、`--dry-run`、`--help`；Windows 亦兼容 `-Lang`、`-NoShortcut`、`-UpdateEngine`、`-DryRun`）。
 
-`--no-shortcut` · `--update-engine` · `--dry-run` · `--help`
+---
 
-Windows 也支持 `-Lang`、`-NoShortcut`、`-UpdateEngine`、`-DryRun`；原有 `AGY_ZH_*` 与 `GEMINI_CONFIG_DIR` 设置继续有效。
+## 🔍 工作原理与技术边界说明
 
-## 实现与验证
+1. **零二进制入侵**：通过本地回环（`127.0.0.1`）CDP 协议在窗口加载时动态挂载渲染层翻译字典（590+ 精确词条 + 20 组动态正则模板 + `Intl.RelativeTimeFormat` 相对时间与欢迎语模板），退出即释放，不改动 `Antigravity.app` / 安装目录内任何字节。
+2. **绝不污染对话与代码**：运行时自动跳过 `.monaco-editor`、`.xterm`、`<code>`、`<pre>`、用户提问气泡与 AI 回复正文，只翻译 UI 控件、设置项、面板说明与悬浮提示，解决传统汉化包“把聊天里的英文单词也硬翻成中文”的痛点。
+3. **原生系统顶栏边界（路线取舍）**：因坚持不解包修改 Electron 主进程 `app.asar`，macOS 屏幕最顶部的系统原生菜单栏（`File / Edit / View`）保持系统原样，以此换取官方代码签名完整与升级零损坏。
 
-`locales/index.json` 统一声明语言、入口、命令和插件名称；九份 JSON 使用相同词条键，覆盖常用 IDE 操作、智能体交互和工具状态，欢迎语使用模板，相对时间使用 `Intl.RelativeTimeFormat`。
+---
 
-简体中文继续使用原有上游词库与增强逻辑（`lib/zh-overlay.*`），其他语言共用 `lib/overlay.js`。翻译仅在运行时注入，跳过代码编辑区、用户输入、对话标题和回复正文。未来版本新增或尚未收录的文本保留原文；这不是 Antigravity 官方语言包。
-
-Prompt 插件引导计划、可展示的思考说明、工具摘要与回答使用目标语言，保留代码、路径和原始报错；模型是否遵循及内部思考语言由模型决定。
+## 🧪 本地验证测试
 
 ```bash
 python3 tests/test_launcher.py
@@ -109,4 +147,4 @@ node tests/overlay.test.js
 # Windows PowerShell: & .\tests\powershell.test.ps1
 ```
 
-[MIT License](LICENSE) · [Upstream Chinese dictionary / 原有中文词库](https://github.com/yuexps/Antigravity-Hans) · [CLI details](docs/usage.en.md)
+[官网介绍页](https://hub.guuguo.top/antigravity-zh) · [MIT License](LICENSE) · [基础中文词库致谢](https://github.com/yuexps/Antigravity-Hans) · [CLI 详细说明](docs/usage.en.md)

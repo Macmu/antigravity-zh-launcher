@@ -29,7 +29,7 @@ function Resolve-ZhText {
 $TagInfo = Resolve-ZhText '[\u4fe1\u606f]'
 $TagOk   = Resolve-ZhText '[\u6210\u529f]'
 $TagWarn = Resolve-ZhText '[\u63d0\u793a]'
-$OverlayVersion = 'agy-zh-v5'
+$OverlayVersion = 'agy-zh-v6'
 $ShortcutName   = $meta.appName + '.lnk'
 $OverlayUrl     = if ($env:AGY_ZH_OVERLAY_URL) { $env:AGY_ZH_OVERLAY_URL } else { 'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/antigravity-hans-overlay.js' }
 $PluginName     = $meta.pluginName

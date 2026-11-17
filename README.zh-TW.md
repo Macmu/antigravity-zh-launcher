@@ -1,81 +1,50 @@
 [简体中文](README.md) · [English](README.en.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [繁體中文](README.zh-TW.md)
 
-# Antigravity 多語言啟動器
+# Antigravity 無損多語言啟動器（繁體中文）
 
-為 Antigravity 提供獨立語言入口、介面翻譯與 AI 語言規則。不帶參數安裝時，仍使用 **zh-CN / Antigravity 中文**。保留既有 `agy-zh` 指令、快取與外掛路徑，不變更原版應用程式檔案。
+> **支援系統**：macOS & Windows（內建原生腳本，**無需安裝 Node.js**）  
+> **中文化範圍**：主工作台、設定面板、MCP / 擴充市集、Skills & Rules、代理程式與自動化、懸浮提示 (Tooltip)、首次啟動引導頁 ＋ **AI 思考過程與回答全鏈路繁體中文化**
+
+不解包、不改寫 `app.asar`、不破壞官方簽章。在保留原版英文 `Antigravity` 的同時，新增獨立的 **「Antigravity 繁體中文」** 雙圖示入口，官方自動更新後依然有效。
 
 ![Antigravity 繁體中文 UI](docs/assets/real-ui-zh-tw.png)
 
-## 安裝
+## ⚡ 為什麼選擇「無損啟動器」而非傳統 `app.asar` 改包？
 
-請先安裝 Antigravity。macOS 需要 Bash、Python 3 與 curl；Windows 使用系統內建 Windows PowerShell 5.1。執行時不需要 Node.js。
+| 對比項目 | 傳統改包方案（解包重寫 `app.asar`） | 本專案 `antigravity-zh-launcher` |
+| :--- | :--- | :--- |
+| **原版安全與簽章** | 改寫官方套件，macOS 需強制重簽章，易觸發損毀攔截 | **100% 零修改原版檔案**，完整保留 Google 官方簽章 |
+| **官方版本升級** | 每次更新都會覆蓋 `app.asar`，必須重新打補丁 | **更新零衝突**，外掛啟動器持續生效 |
+| **對話與程式碼保護** | 全域字串替換容易把對話氣泡與程式碼內的英文誤翻 | **嚴格 DOM 邊界隔離**，絕不誤傷使用者訊息、程式碼區塊與回覆內文 |
+| **AI 思考與回覆語言** | 僅翻譯介面按鈕，AI 思考與產出仍常跳回英文 | **連動語言 Prompt 外掛**，介面 + 思考鏈路 + 回覆統一使用繁體中文 |
+| **雙版本並存** | 覆蓋單一安裝，想對照英文原詞需先還原 | **原版與繁中雙圖示並存**，隨時自由切換 |
 
-從本機儲存庫安裝：
+## 🚀 一行指令快速安裝（繁體中文 `zh-TW`）
 
-```bash
-bash install.sh --lang zh-TW
-```
+請先安裝官方 [Google Antigravity](https://antigravity.google)（執行時無需 Node.js）。
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 --lang zh-TW
-```
-
-遠端安裝（繁體中文範例；省略參數則使用簡體中文）：
-
+**macOS：**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.sh | bash -s -- --lang zh-TW
 ```
 
+**Windows PowerShell：**
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/install.ps1))) --lang zh-TW
 ```
 
-| Code | Language / 语言 | Entry | CLI |
-| --- | --- | --- | --- |
-| `zh-CN` | 简体中文（默认） | Antigravity 中文 | `agy-zh` |
-| `zh-TW` | 繁體中文 | Antigravity 繁體中文 | `agy-zh-tw` |
-| `ja` | 日本語 | Antigravity 日本語 | `agy-ja` |
-| `ko` | 한국어 | Antigravity 한국어 | `agy-ko` |
-| `es` | Español | Antigravity Español | `agy-es` |
-| `fr` | Français | Antigravity Français | `agy-fr` |
-| `de` | Deutsch | Antigravity Deutsch | `agy-de` |
-| `ru` | Русский | Antigravity Русский | `agy-ru` |
-| `pt-BR` | Português (Brasil) | Antigravity Português | `agy-pt-br` |
+## 🛠️ 日常使用與無痕解除安裝
 
-## 使用與解除安裝
-
-可並存多種語言的獨立圖示。Antigravity 共用同一個桌面工作階段；切換語言時會停止上一個注入程式，僅啟用所選語言的外掛。結束本地化工作階段後會停用外掛。要回到原版英文，請先結束本地化工作階段，再開啟原版入口。
+- **啟動**：直接點擊應用程式或桌面上的 **`Antigravity 繁體中文`** 圖示，或執行 `agy-zh-tw start`。
+- **切回原版英文**：關閉視窗後點擊原本的 **`Antigravity`** 圖示即可，繁中語言規則外掛會自動關閉。
 
 ```bash
-agy-zh --lang zh-TW start
-agy-zh --lang zh-TW status
-agy-zh --lang zh-TW prompt status
-bash uninstall.sh --lang zh-TW --purge
+# 解除安裝（macOS）
+curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/uninstall.sh | bash -s -- --lang zh-TW --purge
 ```
-
 ```powershell
-agy-zh --lang zh-TW start
-powershell -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 --lang zh-TW --purge
+# 解除安裝（Windows PowerShell）
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main/uninstall.ps1))) --lang zh-TW --purge
 ```
 
-預設只解除安裝簡體中文。`--lang` 只移除指定語言；最後一種語言移除後才會清理共用執行檔。`--purge` 同時清理對應快取，不會移除其他語言入口。
-
-`--no-shortcut` · `--update-engine` · `--dry-run` · `--help`
-
-Windows 也支援 `-Lang`、`-NoShortcut`、`-UpdateEngine`、`-DryRun`；原有 `AGY_ZH_*` 與 `GEMINI_CONFIG_DIR` 設定仍然有效。
-
-## 架構與驗證
-
-`locales/index.json` 統一定義語言、入口、指令與外掛名稱。九份 JSON 使用相同詞條鍵，涵蓋常用 IDE 操作、代理程式互動與工具狀態。歡迎語採用範本，相對時間使用 `Intl.RelativeTimeFormat`。
-
-簡體中文保留原有上游詞庫與增強處理（`lib/zh-overlay.*`）；其他語言共用 `lib/overlay.js`。執行時注入會跳過程式碼編輯區、使用者輸入、對話標題與回覆本文。未收錄或未來新增的文字保留原文；這不是 Antigravity 官方語言套件。
-
-語言外掛引導計畫、可呈現的思考說明、工具摘要與回覆使用目標語言，同時保留程式碼、路徑及原始錯誤訊息。模型是否遵循及內部思考語言由模型決定。
-
-```bash
-python3 tests/test_launcher.py
-node tests/overlay.test.js
-# Windows PowerShell: & .\tests\powershell.test.ps1
-```
-
-[MIT License](LICENSE) · [Upstream Chinese dictionary / 原有中文词库](https://github.com/yuexps/Antigravity-Hans) · [CLI details](docs/usage.en.md)
+[官方介紹頁](https://hub.guuguo.top/antigravity-zh) · [MIT License](LICENSE) · [CLI 詳細說明](docs/usage.en.md)
