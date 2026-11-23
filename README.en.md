@@ -8,6 +8,8 @@
 
 Localize Google Antigravity **without** unpacking `app.asar`, modifying binaries, or breaking macOS code signatures. Creates a dedicated localized shortcut icon alongside your untouched original English `Antigravity` app, surviving every official auto-update cleanly.
 
+> 💡 **Companion Tool**: Running **Antigravity, Codex, or Claude Code** across multiple sessions? Monitor live progress, approve tool calls from your phone via QR code, and manage agents in a 3D dashboard with **[Agent Control](https://github.com/guuguo/agent-control)** ([more tools at hub.guuguo.top](https://hub.guuguo.top)).
+
 ---
 
 ## ⚡ Why a Non-Intrusive Launcher vs. `app.asar` Patchers?
@@ -113,5 +115,12 @@ python3 tests/test_launcher.py
 node tests/overlay.test.js
 # Windows PowerShell: & .\tests\powershell.test.ps1
 ```
+
+## 🔗 Companion Tools
+
+- **[Agent Control](https://github.com/guuguo/agent-control)** — Self-hosted desktop & mobile remote control console for **Antigravity, Codex, Claude Code, and Grok**, featuring 5s QR mobile approvals, multi-account quotas, and a 3D Dream Factory view.
+- **[hub.guuguo.top](https://hub.guuguo.top)** — Indie developer tools hub by guuguo.
+
+---
 
 [Website](https://hub.guuguo.top/antigravity-zh) · [MIT License](LICENSE) · [Upstream Chinese Dictionary](https://github.com/yuexps/Antigravity-Hans) · [CLI Reference](docs/usage.en.md)
