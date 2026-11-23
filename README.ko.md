@@ -7,7 +7,7 @@
 
 `app.asar` 언패킹이나 바이너리 패치 없이 원본 영문 `Antigravity`를 그대로 유지하면서 독립된 **`Antigravity 한국어`** 실행 아이콘을 생성합니다. macOS 코드 서명이 깨지지 않으며 공식 업데이트 후에도 풀리지 않습니다.
 
-> 💡 **동일 제작자 추천 도구**: **Antigravity / Codex / Claude Code**를 함께 쓰고 있다면, 모바일 QR로 진행 상황을 확인하고 권한을 승인하는 **[Agent Control](https://github.com/guuguo/agent-control)** 도 함께 사용해 보세요 ([더 많은 도구: hub.guuguo.top](https://hub.guuguo.top)).
+> 💡 **동일 제작자 추천 도구**: **Antigravity / Codex / Claude Code**를 함께 쓰고 있다면, 모바일 QR로 진행 상황을 확인하고 권한을 승인하는 **[RemoDeck](https://github.com/guuguo/remodeck)** 도 함께 사용해 보세요 ([더 많은 도구: hub.guuguo.top](https://hub.guuguo.top)).
 
 ![Antigravity 한국어 UI](docs/assets/real-ui-ko.png)
 
@@ -52,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main
 
 ## 🔗 함께 쓰면 좋은 도구
 
-- **[Agent Control](https://github.com/guuguo/agent-control)** — **Antigravity / Codex / Claude Code / Grok**을 PC와 스마트폰에서 통합 모니터링하고 5초 QR 원격 승인 및 3D 대시보드로 관리하는 셀프 호스팅 콘솔.
+- **[RemoDeck](https://github.com/guuguo/remodeck)** — **Antigravity / Codex / Claude Code / Grok**을 PC와 스마트폰에서 통합 모니터링하고 5초 QR 원격 승인 및 3D 대시보드로 관리하는 셀프 호스팅 콘솔.
 - **[hub.guuguo.top](https://hub.guuguo.top)** — guuguo 개발 도구 허브 페이지.
 
 ---

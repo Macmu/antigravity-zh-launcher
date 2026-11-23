@@ -8,7 +8,7 @@
 
 Localize Google Antigravity **without** unpacking `app.asar`, modifying binaries, or breaking macOS code signatures. Creates a dedicated localized shortcut icon alongside your untouched original English `Antigravity` app, surviving every official auto-update cleanly.
 
-> 💡 **Companion Tool**: Running **Antigravity, Codex, or Claude Code** across multiple sessions? Monitor live progress, approve tool calls from your phone via QR code, and manage agents in a 3D dashboard with **[Agent Control](https://github.com/guuguo/agent-control)** ([more tools at hub.guuguo.top](https://hub.guuguo.top)).
+> 💡 **Companion Tool**: Running **Antigravity, Codex, or Claude Code** across multiple sessions? Monitor live progress, approve tool calls from your phone via QR code, and manage agents in a 3D dashboard with **[RemoDeck](https://github.com/guuguo/remodeck)** ([more tools at hub.guuguo.top](https://hub.guuguo.top)).
 
 ---
 
@@ -118,7 +118,7 @@ node tests/overlay.test.js
 
 ## 🔗 Companion Tools
 
-- **[Agent Control](https://github.com/guuguo/agent-control)** — Self-hosted desktop & mobile remote control console for **Antigravity, Codex, Claude Code, and Grok**, featuring 5s QR mobile approvals, multi-account quotas, and a 3D Dream Factory view.
+- **[RemoDeck](https://github.com/guuguo/remodeck)** — Self-hosted desktop & mobile remote control console for **Antigravity, Codex, Claude Code, and Grok**, featuring 5s QR mobile approvals, multi-account quotas, and a 3D Dream Factory view.
 - **[hub.guuguo.top](https://hub.guuguo.top)** — Indie developer tools hub by guuguo.
 
 ---

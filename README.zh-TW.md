@@ -7,7 +7,7 @@
 
 不解包、不改寫 `app.asar`、不破壞官方簽章。在保留原版英文 `Antigravity` 的同時，新增獨立的 **「Antigravity 繁體中文」** 雙圖示入口，官方自動更新後依然有效。
 
-> 💡 **同作者配套工具**：如果你同時在使用 **Antigravity / Codex / Claude Code**，想在手機掃碼查看進度、批核權限或用 3D 看板統管多代理，推薦搭配開源控制台 👉 **[Agent Control](https://github.com/guuguo/agent-control)**（[更多工具見 hub.guuguo.top](https://hub.guuguo.top)）。
+> 💡 **同作者配套工具**：如果你同時在使用 **Antigravity / Codex / Claude Code**，想在手機掃碼查看進度、批核權限或用 3D 看板統管多代理，推薦搭配開源控制台 👉 **[RemoDeck](https://github.com/guuguo/remodeck)**（[更多工具見 hub.guuguo.top](https://hub.guuguo.top)）。
 
 ![Antigravity 繁體中文 UI](docs/assets/real-ui-zh-tw.png)
 
@@ -51,7 +51,7 @@ curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main
 
 ## 🔗 同系列配套開源工具
 
-- **[Agent Control](https://github.com/guuguo/agent-control)** — 電腦與手機統一遠端控制 **Antigravity / Codex / Claude Code / Grok** 的自託管控制台，支援 5 秒掃碼核准權限、多帳號額度分離與 3D 夢工廠即時看板。
+- **[RemoDeck](https://github.com/guuguo/remodeck)** — 電腦與手機統一遠端控制 **Antigravity / Codex / Claude Code / Grok** 的自託管控制台，支援 5 秒掃碼核准權限、多帳號額度分離與 3D 夢工廠即時看板。
 - **[guuguo 工具主頁](https://hub.guuguo.top)** — 查看更多開源桌面工具與 AI 工作流專案。
 
 ---

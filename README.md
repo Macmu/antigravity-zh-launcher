@@ -8,7 +8,7 @@
 
 不解包、不改写 `app.asar`、不重签名破坏官方安装包。为你生成一个独立的「**Antigravity 中文**」（或任意目标语言）启动图标，与原版英文 `Antigravity` 双图标并存、随时切换，官方每次自动升级都不失效。
 
-> 💡 **同作者配套工具**：如果你同时在用 **Antigravity / Codex / Claude Code**，想在手机上扫码看进度、批权限或用 3D 看板统管多智能体，推荐搭配开源控制台 👉 **[Agent Control](https://github.com/guuguo/agent-control)**（[更多工具见 hub.guuguo.top](https://hub.guuguo.top)）。
+> 💡 **同作者配套工具**：如果你同时在用 **Antigravity / Codex / Claude Code**，想在手机上扫码看进度、批权限或用 3D 看板统管多智能体，推荐搭配开源控制台 👉 **[RemoDeck](https://github.com/guuguo/remodeck)**（[更多工具见 hub.guuguo.top](https://hub.guuguo.top)）。
 
 ---
 
@@ -151,7 +151,7 @@ node tests/overlay.test.js
 
 ## 🔗 同系列配套开源工具
 
-- **[Agent Control](https://github.com/guuguo/agent-control)** — 电脑与手机统一远程控制 **Antigravity / Codex / Claude Code / Grok** 的自托管控制台，支持 5 秒扫码审批权限、多账号额度分离与 3D 梦工厂实时看板。
+- **[RemoDeck](https://github.com/guuguo/remodeck)** — 电脑与手机统一远程控制 **Antigravity / Codex / Claude Code / Grok** 的自托管控制台，支持 5 秒扫码审批权限、多账号额度分离与 3D 梦工厂实时看板。
 - **[guuguo 工具主页](https://hub.guuguo.top)** — 查看更多开源桌面工具与 AI 工作流项目。
 
 ---

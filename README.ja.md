@@ -7,7 +7,7 @@
 
 `app.asar` の書き換えや再署名を一切行わず、元の英語版 `Antigravity` を無傷のまま残して **「Antigravity 日本語」** アイコンを追加します。macOS のコード署名を壊さず、本体の自動アップデートでも上書きされません。
 
-> 💡 **同作者の関連ツール**：**Antigravity / Codex / Claude Code** を併用しているなら、スマホから QR で進捗確認・権限承認・3D ダッシュボード管理ができる 👉 **[Agent Control](https://github.com/guuguo/agent-control)** もあわせてどうぞ（[ツール一覧: hub.guuguo.top](https://hub.guuguo.top)）。
+> 💡 **同作者の関連ツール**：**Antigravity / Codex / Claude Code** を併用しているなら、スマホから QR で進捗確認・権限承認・3D ダッシュボード管理ができる 👉 **[RemoDeck](https://github.com/guuguo/remodeck)** もあわせてどうぞ（[ツール一覧: hub.guuguo.top](https://hub.guuguo.top)）。
 
 ![Antigravity 日本語 UI](docs/assets/real-ui-ja.png)
 
@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main
 
 ## 🔗 関連ツール
 
-- **[Agent Control](https://github.com/guuguo/agent-control)** — **Antigravity / Codex / Claude Code / Grok** を PC とスマホから一括管理・リモート承認できるセルフホストコンソール（3D ダッシュボード対応）。
+- **[RemoDeck](https://github.com/guuguo/remodeck)** — **Antigravity / Codex / Claude Code / Grok** を PC とスマホから一括管理・リモート承認できるセルフホストコンソール（3D ダッシュボード対応）。
 - **[hub.guuguo.top](https://hub.guuguo.top)** — 作者 guuguo の開発ツール一覧ページ。
 
 ---
