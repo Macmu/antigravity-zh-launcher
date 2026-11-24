@@ -100,3 +100,34 @@ assert.equal(f.label.nodeValue,JSON.parse(fs.readFileSync(path.join(root,'locale
 f.window.__antigravityZhSetLang('en');
 assert.equal(f.label.nodeValue,'Settings');
 console.log('PASS language switch ja -> ko -> original');
+{
+  const early = fixture();
+  early.document.readyState = 'loading';
+  early.document.documentElement = null;
+  let domLoadedHandler = null;
+  let domLoadedOnce = false;
+  early.window.addEventListener = (event, handler, opts) => {
+    if (event === 'DOMContentLoaded') {
+      domLoadedHandler = handler;
+      domLoadedOnce = Boolean(opts && opts.once);
+    }
+  };
+  let removedHandler = null;
+  early.window.removeEventListener = (event, handler) => {
+    if (event === 'DOMContentLoaded') removedHandler = handler;
+  };
+  const zhLocale = inject(early, 'zh-CN');
+  assert.equal(typeof domLoadedHandler, 'function');
+  assert.equal(domLoadedOnce, true);
+  assert.equal(early.label.nodeValue, 'Settings');
+  early.document.readyState = 'interactive';
+  early.document.documentElement = {lang: 'en'};
+  domLoadedHandler();
+  assert.equal(early.document.documentElement.lang, 'zh-CN');
+  assert.equal(early.label.nodeValue, zhLocale.phrases.Settings);
+  early.window.__antigravityZhPatchCleanup();
+  assert.equal(removedHandler, domLoadedHandler);
+  assert.equal(early.document.documentElement.lang, 'en');
+  assert.equal(early.label.nodeValue, 'Settings');
+  console.log('PASS early-document null documentElement guard: zh-CN');
+}

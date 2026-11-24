@@ -9,6 +9,9 @@ foreach ($file in @('install.ps1','uninstall.ps1','bin/agy-zh.ps1','lib/options.
 $psLauncher = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'bin/agy-zh.ps1')
 if ($psLauncher -match 'return\s*,\s*\$pids') { throw 'Nested PID array regression in bin/agy-zh.ps1' }
 if ($psLauncher -match '/IM\s+Antigravity\.exe') { throw 'Unscoped /IM taskkill regression in bin/agy-zh.ps1' }
+if ($psLauncher -match 'wscript\.exe' -or $psLauncher -match '//B') { throw 'Legacy VBS/wscript shortcut regression in bin/agy-zh.ps1' }
+if ($psLauncher -notmatch 'DnsSafeHost') { throw 'Missing IPv6 DnsSafeHost fix in bin/agy-zh.ps1' }
+if ($psLauncher -notmatch 'CreateNoWindow') { throw 'Missing detached CreateNoWindow watcher launch in bin/agy-zh.ps1' }
 if ($psLauncher -notmatch 'https://raw\.githubusercontent\.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay\.js') {
     throw 'Missing updated resources/antigravity-hans-overlay.js URL in bin/agy-zh.ps1'
 }

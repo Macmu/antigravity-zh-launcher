@@ -7,11 +7,12 @@ function Build-AgyOverlay {
     $i18nLayer = $template.Replace('/*__AGY_LOCALE__*/', $localeJson)
     if ($Lang -eq 'zh-CN' -and (Ensure-EnhancedOverlay -Force $Force)) {
         $baseScript = [System.IO.File]::ReadAllText($OverlayJs, [System.Text.Encoding]::UTF8)
-        if (-not $baseScript.Contains('/*__AGY_ZH_I18N_LAYER__*/')) {
-            $script = $baseScript.TrimEnd() + "`n/*__AGY_ZH_I18N_LAYER__*/`n" + $i18nLayer
-        } else {
-            $script = $baseScript
+        $marker = '/*__AGY_ZH_I18N_LAYER__*/'
+        $markerIdx = $baseScript.IndexOf($marker, [System.StringComparison]::Ordinal)
+        if ($markerIdx -ge 0) {
+            $baseScript = $baseScript.Substring(0, $markerIdx)
         }
+        $script = $baseScript.TrimEnd() + "`n$marker`n" + $i18nLayer
     } else {
         $script = $i18nLayer
     }

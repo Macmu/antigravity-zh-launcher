@@ -55,9 +55,19 @@ class LauncherTests(unittest.TestCase):
         for file in (ROOT / 'lib').glob('*.py'):
             ast.parse(file.read_text(), filename=str(file))
         self.run_command('node', '--check', str(ROOT / 'lib/overlay.js'))
+        ps1_bytes = (ROOT / 'bin/agy-zh.ps1').read_bytes()
+        self.assertTrue(ps1_bytes.startswith(b'\xef\xbb\xbf'))
         ps1 = (ROOT / 'bin/agy-zh.ps1').read_text()
         self.assertNotIn('return ,$pids', ps1)
         self.assertNotIn('/IM Antigravity.exe', ps1)
+        self.assertNotIn('wscript.exe', ps1)
+        self.assertNotIn('//B', ps1)
+        self.assertNotIn('?.', ps1)
+        self.assertNotRegex(ps1, r'\.ArgumentList\b')
+        self.assertIn('DnsSafeHost', ps1)
+        self.assertIn('CreateNoWindow', ps1)
+        self.assertIn('Write-AgyLog', ps1)
+        self.assertIn('Focus-VisibleWindowForPids', ps1)
         self.assertIn(
             'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js',
             ps1,
@@ -72,6 +82,10 @@ class LauncherTests(unittest.TestCase):
         self.assertNotIn('?.', (ROOT / 'lib/locale.ps1').read_text())
         self.assertNotRegex((ROOT / 'lib/zh-overlay.ps1').read_text(), r'\$[A-Za-z0-9_:]+\?\.')
         self.assertIn('Write-Warning', (ROOT / 'lib/zh-overlay.ps1').read_text())
+        shortcut_fn = re.search(r'function New-ZhShortcut\s*\{(.*?)\n\}', ps1, re.S)
+        self.assertIsNotNone(shortcut_fn)
+        self.assertIn('powershell.exe', shortcut_fn.group(1))
+        self.assertIn('--gui', shortcut_fn.group(1))
         for line in ps1.splitlines():
             if 'taskkill.exe' in line:
                 self.assertIn('try {', line)

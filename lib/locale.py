@@ -27,10 +27,10 @@ def main():
             subprocess.run([sys.executable, str(root / 'lib/zh-overlay.py'), str(base_path),
                             str(output), 'agy-zh-v7', force_flag], check=True)
             base_script = output.read_text(encoding='utf-8')
-            if '/*__AGY_ZH_I18N_LAYER__*/' not in base_script:
-                script = base_script.rstrip() + '\n/*__AGY_ZH_I18N_LAYER__*/\n' + i18n_layer
-            else:
-                script = base_script
+            marker = '/*__AGY_ZH_I18N_LAYER__*/'
+            if marker in base_script:
+                base_script = base_script.split(marker, 1)[0]
+            script = base_script.rstrip() + '\n' + marker + '\n' + i18n_layer
         else:
             script = i18n_layer
         output.parent.mkdir(parents=True, exist_ok=True)

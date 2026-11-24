@@ -102,6 +102,11 @@
     $pidName = if ($Lang -eq 'zh-CN') { 'watcher.pid' } else { $CommandName + '.pid' }
     $pidPath = Join-Path $InstallRoot "logs\$pidName"
     if (Test-Path $pidPath) { Remove-Item -Force $pidPath }
+    $logName = if ($Lang -eq 'zh-CN') { 'agy-zh.log' } else { $CommandName + '.log' }
+    $logPath = Join-Path $InstallRoot "logs\$logName"
+    foreach ($lf in @($logPath, ($logPath + '.1'))) {
+        if (Test-Path $lf) { Remove-Item -Force $lf }
+    }
     $installedDir = Join-Path $AssetRoot 'installed'
     $remaining = @(if (Test-Path $installedDir) { Get-ChildItem -File $installedDir })
     if ($remaining.Count -eq 0) {
