@@ -1099,11 +1099,11 @@ function Start-GuiManagedLaunch {
             while ($processedCount -lt $lines.Count) {
                 $line = $lines[$processedCount]
                 $processedCount++
-                $parts = $line.Split(@('|'), 2)
+                $parts = @($line -split '\|', 2)
                 $code = $parts[0]
                 $payload = if ($parts.Count -gt 1) { $parts[1] } else { '' }
                 if ($code -eq 'PHASE') {
-                    $p2 = $payload.Split(@('|'), 2)
+                    $p2 = @($payload -split '\|', 2)
                     $phase = $p2[0]
                     $pval = if ($p2.Count -gt 1) { $p2[1] } else { '' }
                     if ($phase -eq 'WAIT_CDP') {
@@ -1124,10 +1124,10 @@ function Start-GuiManagedLaunch {
                         }
                     }
                 } elseif ($code -eq 'INJECTED') {
-                    $p2 = $payload.Split(@('|'), 2)
+                    $p2 = @($payload -split '\|', 2)
                     try { $injectedCount = [int]$p2[0] } catch { $injectedCount = 1 }
                 } elseif ($code -eq 'SKIP') {
-                    $p2 = $payload.Split(@('|'), 2)
+                    $p2 = @($payload -split '\|', 2)
                     $disp = if ($p2.Count -gt 1) { "[$($p2[0])] $($p2[1])" } else { $payload }
                     if (-not $skippedUrls.Contains($disp)) { $skippedUrls.Add($disp) }
                 } elseif ($code -eq 'WARN') {
@@ -1139,7 +1139,7 @@ function Start-GuiManagedLaunch {
         }
 
         while ($true) {
-            & $drainState
+            . $drainState
 
             if ($watching -and $injectedCount -gt 0) {
                 Write-Host ''
@@ -1152,7 +1152,7 @@ function Start-GuiManagedLaunch {
 
             if ($lastError -or $watcherProc.HasExited) {
                 Start-Sleep -Milliseconds 200
-                & $drainState
+                . $drainState
                 if (-not $lastError) {
                     $lastError = "$(Resolve-ZhText '\u540e\u53f0\u76d1\u89c6\u5668\u610f\u5916\u9000\u51fa (\u9000\u51fa\u7801:') $($watcherProc.ExitCode))."
                 }

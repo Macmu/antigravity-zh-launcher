@@ -12,6 +12,8 @@ if ($psLauncher -match '/IM\s+Antigravity\.exe') { throw 'Unscoped /IM taskkill 
 if ($psLauncher -match 'wscript\.exe' -or $psLauncher -match '//B') { throw 'Legacy VBS/wscript shortcut regression in bin/agy-zh.ps1' }
 if ($psLauncher -notmatch 'DnsSafeHost') { throw 'Missing IPv6 DnsSafeHost fix in bin/agy-zh.ps1' }
 if ($psLauncher -notmatch 'CreateNoWindow') { throw 'Missing detached CreateNoWindow watcher launch in bin/agy-zh.ps1' }
+if ($psLauncher -match '\.Split\(@\(') { throw 'PowerShell 5.1 String.Split(string[], StringSplitOptions) overload regression in bin/agy-zh.ps1' }
+if ($psLauncher -match '&\s+\$drainState\b' -or $psLauncher -notmatch '\.\s+\$drainState\b') { throw 'Child-scope $drainState invocation regression in bin/agy-zh.ps1' }
 if ($psLauncher -notmatch 'https://raw\.githubusercontent\.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay\.js') {
     throw 'Missing updated resources/antigravity-hans-overlay.js URL in bin/agy-zh.ps1'
 }
@@ -34,6 +36,14 @@ foreach ($bad in @(@('--lang'),@('--lang','en'),@('--unknown'))) {
 }
 if ((Read-AgyOptions -Arguments @()).Lang -cne 'zh-CN') { throw 'Default language changed' }
 Write-Host 'PASS language arguments, defaults, rejected invalid inputs'
+$splitParts = @('PHASE|APP_LAUNCHED|58321' -split '\|', 2)
+if ($splitParts.Count -ne 2 -or $splitParts[0] -ne 'PHASE' -or $splitParts[1] -ne 'APP_LAUNCHED|58321') {
+    throw 'Launch state -split regression'
+}
+$dotCount = 0
+$dotSb = { $dotCount++ }
+. $dotSb
+if ($dotCount -ne 1) { throw 'Dot-sourced state drain scope regression' }
 # Build all nine overlays offline, including legacy Chinese anchor fallback.
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('agy-ps-test-' + [Guid]::NewGuid().ToString('N'))
 try {
