@@ -9,6 +9,16 @@ foreach ($file in @('install.ps1','uninstall.ps1','bin/agy-zh.ps1','lib/options.
 $psLauncher = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'bin/agy-zh.ps1')
 if ($psLauncher -match 'return\s*,\s*\$pids') { throw 'Nested PID array regression in bin/agy-zh.ps1' }
 if ($psLauncher -match '/IM\s+Antigravity\.exe') { throw 'Unscoped /IM taskkill regression in bin/agy-zh.ps1' }
+if ($psLauncher -notmatch 'https://raw\.githubusercontent\.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay\.js') {
+    throw 'Missing updated resources/antigravity-hans-overlay.js URL in bin/agy-zh.ps1'
+}
+if ($psLauncher -match '/Antigravity-Hans/main/antigravity-hans-overlay\.js') {
+    throw 'Stale root antigravity-hans-overlay.js URL remains in bin/agy-zh.ps1'
+}
+$localeLibText = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'lib/locale.ps1')
+if ($localeLibText -match '\?\.') { throw 'PS7 null-conditional regression in lib/locale.ps1' }
+$zhOverlayLibText = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'lib/zh-overlay.ps1')
+if ($zhOverlayLibText -match '\$[A-Za-z0-9_:]+\?\.') { throw 'PS7 null-conditional regression in lib/zh-overlay.ps1' }
 . (Join-Path $root 'lib/options.ps1')
 foreach ($lang in @('zh-CN','zh-TW','ja','ko','es','fr','de','ru','pt-BR')) {
     $result = Read-AgyOptions -Arguments @('--lang',$lang,'--dry-run') -Switches @('--dry-run')
@@ -29,7 +39,7 @@ try {
     . (Join-Path $root 'lib/locale.ps1')
     . (Join-Path $root 'lib/zh-overlay.ps1')
     $BaseOverlayJs = Join-Path $tempRoot 'base.js'
-    $OverlayVersion = 'agy-zh-v6'
+    $OverlayVersion = 'agy-zh-v7'
     [IO.File]::WriteAllText($BaseOverlayJs, ('window.__antigravityZhPatchInstalled = true;' + (' ' * 1100)))
     foreach ($Lang in @('zh-CN','zh-TW','ja','ko','es','fr','de','ru','pt-BR')) {
         $OverlayJs = Join-Path $tempRoot ($Lang + '.js')
@@ -38,6 +48,18 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Invalid generated overlay: $Lang" }
         Write-Host "PASS PowerShell overlay build: $Lang"
     }
+    $Lang = 'zh-CN'
+    $BaseOverlayJs = Join-Path $tempRoot 'missing-base.js'
+    $OverlayJs = Join-Path $tempRoot 'fallback-zh-CN.js'
+    $OverlayUrl = 'http://127.0.0.1:1/missing-antigravity-hans-overlay.js'
+    Build-AgyOverlay -Force $true
+    if (-not (Test-Path $OverlayJs)) { throw 'Fallback zh-CN overlay was not created' }
+    if (-not ([IO.File]::ReadAllText($OverlayJs, [Text.Encoding]::UTF8).Contains('__antigravityZhPatchInstalled'))) {
+        throw 'Fallback zh-CN overlay missing patch marker'
+    }
+    & node --check $OverlayJs
+    if ($LASTEXITCODE -ne 0) { throw 'Invalid fallback zh-CN overlay' }
+    Write-Host 'PASS PowerShell zh-CN fallback when upstream download fails'
 } finally { if (Test-Path $tempRoot) { Remove-Item -Recurse -Force $tempRoot } }
 # Exercise real entry-point parsing without Windows COM or the Antigravity process.
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('agy-entry-test-' + [Guid]::NewGuid().ToString('N'))

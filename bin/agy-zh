@@ -29,7 +29,7 @@ CONFIG_DIR="${GEMINI_CONFIG_DIR:-$HOME/.gemini/config}"
 CONFIG_FILE="$CONFIG_DIR/config.json"
 PLUGIN_DIR="$CONFIG_DIR/plugins/$PLUGIN_NAME"
 DATA_DIR="${AGY_ZH_DATA_DIR:-$HOME/.local/bin}"
-OVERLAY_URL="${AGY_ZH_OVERLAY_URL:-https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/antigravity-hans-overlay.js}"
+OVERLAY_URL="${AGY_ZH_OVERLAY_URL:-https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js}"
 BASE_OVERLAY_FILE="$DATA_DIR/antigravity-hans-overlay.base.js"
 LOG_DIR="$HOME/Library/Logs"
 if [[ "$LANG_CODE" == "zh-CN" ]]; then
@@ -233,7 +233,13 @@ ensure_enhanced_overlay() {
   local force="${1:-false}"
   mkdir -p "$DATA_DIR"
   if [[ "$LANG_CODE" == "zh-CN" ]]; then
-    ensure_base_overlay "$force"
+    if ! ensure_base_overlay "$force"; then
+      if [[ -s "$BASE_OVERLAY_FILE" ]]; then
+        echo "[警告] 拉取上游基础词库失败，继续使用本地缓存词库。" >&2
+      else
+        echo "[警告] 拉取上游基础词库失败，已自动降级使用内置简体中文词库。" >&2
+      fi
+    fi
   fi
   python3 "$ASSET_ROOT/lib/locale.py" build "$LANG_CODE" "$OVERLAY_FILE" "$BASE_OVERLAY_FILE" "$force"
 }

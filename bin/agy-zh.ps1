@@ -29,9 +29,9 @@ function Resolve-ZhText {
 $TagInfo = Resolve-ZhText '[\u4fe1\u606f]'
 $TagOk   = Resolve-ZhText '[\u6210\u529f]'
 $TagWarn = Resolve-ZhText '[\u63d0\u793a]'
-$OverlayVersion = 'agy-zh-v6'
+$OverlayVersion = 'agy-zh-v7'
 $ShortcutName   = $meta.appName + '.lnk'
-$OverlayUrl     = if ($env:AGY_ZH_OVERLAY_URL) { $env:AGY_ZH_OVERLAY_URL } else { 'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/antigravity-hans-overlay.js' }
+$OverlayUrl     = if ($env:AGY_ZH_OVERLAY_URL) { $env:AGY_ZH_OVERLAY_URL } else { 'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js' }
 $PluginName     = $meta.pluginName
 $ConfigDir      = if ($env:GEMINI_CONFIG_DIR) { $env:GEMINI_CONFIG_DIR } else { Join-Path $env:USERPROFILE '.gemini\config' }
 $ConfigFile     = Join-Path $ConfigDir 'config.json'

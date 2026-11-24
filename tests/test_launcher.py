@@ -58,6 +58,20 @@ class LauncherTests(unittest.TestCase):
         ps1 = (ROOT / 'bin/agy-zh.ps1').read_text()
         self.assertNotIn('return ,$pids', ps1)
         self.assertNotIn('/IM Antigravity.exe', ps1)
+        self.assertIn(
+            'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js',
+            ps1,
+        )
+        self.assertNotIn('/Antigravity-Hans/main/antigravity-hans-overlay.js', ps1)
+        agy_zh = (ROOT / 'bin/agy-zh').read_text()
+        self.assertIn(
+            'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js',
+            agy_zh,
+        )
+        self.assertNotIn('/Antigravity-Hans/main/antigravity-hans-overlay.js', agy_zh)
+        self.assertNotIn('?.', (ROOT / 'lib/locale.ps1').read_text())
+        self.assertNotRegex((ROOT / 'lib/zh-overlay.ps1').read_text(), r'\$[A-Za-z0-9_:]+\?\.')
+        self.assertIn('Write-Warning', (ROOT / 'lib/zh-overlay.ps1').read_text())
         for line in ps1.splitlines():
             if 'taskkill.exe' in line:
                 self.assertIn('try {', line)
@@ -155,6 +169,197 @@ class LauncherTests(unittest.TestCase):
                 self.assertEqual(result.returncode,0,result.stdout+result.stderr)
                 self.assertTrue((home/'.local/bin/agy-i18n/installed'/code).is_file())
                 self.run_command('bash',str(ROOT/'uninstall.sh'),'--lang',code,'--purge',env=env)
+
+    def test_zh_overlay_supports_both_old_and_new_upstream_layouts(self):
+        legacy_base = """window.__antigravityZhPatchInstalled = true;
+(() => {
+  const phrases = new Map([
+    ["Settings", "设置"],
+  ]);
+  const dynamicPatterns = [
+    [/(\\d+)\\s*minutes?\\s*ago\\b/gi, '$1 分钟前'],
+    [/(\\d+)\\s*hours?\\s*ago\\b/gi, '$1 小时前'],
+    [/(\\d+)\\s*days?\\s*ago\\b/gi, '$1 天前'],
+    [/(\\d+)\\s*weeks?\\s*ago\\b/gi, '$1 周前'],
+    [/(\\d+)\\s*months?\\s*ago\\b/gi, '$1 个月前'],
+    [/(\\d+)\\s*years?\\s*ago\\b/gi, '$1 年前'],
+  ];
+  function translate(value) {
+    const trimmed = value.trim();
+    const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
+    if (greeting) return value.replace(trimmed, () => `你好，${greeting[1]}，今天想完成什么？`);
+    if (/^你好，[\\s\\S]+，今天想完成什么？$/.test(trimmed)) return value;
+    return value;
+  }
+  function shouldSkip(node, element) {
+    // 跳过用户输入
+    if (element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]')) {
+      return true;
+    }
+    const historyItem = element.closest('[data-testid="conversation-row-sidebar"], [data-cascade-id], .past-conversations');
+    // 跳过回复正文（保留控件、折叠步骤栏、变更概览与系统提示卡片）
+    const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
+    if (agentResponse) {
+      if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
+      const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header');
+    }
+  }
+  const sel = [
+    '.antigravity-welcome-container',
+  ];
+  function restoreOriginals() {
+    const walker = document.createTreeWalker(document, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      restoreTrackedNode(node);
+    }
+  }
+  window.__antigravityZhPatchCleanup = () => {
+    flushScheduler?.cancel();
+    restoreIdeNlsMessages();
+    removePreferenceSync?.();
+  };
+  function applyChinese(resetMarks) {
+    translateNode(document);
+  }
+  function run() {
+    flushScheduler = createFlushScheduler((batchNodes, batchElements) => {
+      if (cancelled || lang !== 'zh') return;
+      for (const node of batchNodes) translateNode(node);
+      for (const element of batchElements) translateElement(element);
+    });
+  }
+})();
+"""
+        modular_base = """window.__antigravityZhPatchInstalled = true;
+(() => {
+  const phrases = new Map([
+    ["Settings", "设置"],
+  ]);
+const dynamicPatterns = [
+  [/(\\d+)\\s*minutes?\\s*ago\\b/gi, '$1 分钟前'],
+  [/(\\d+)\\s*hours?\\s*ago\\b/gi, '$1 小时前'],
+  [/(\\d+)\\s*days?\\s*ago\\b/gi, '$1 天前'],
+  [/(\\d+)\\s*weeks?\\s*ago\\b/gi, '$1 周前'],
+  [/(\\d+)\\s*months?\\s*ago\\b/gi, '$1 个月前'],
+  [/(\\d+)\\s*years?\\s*ago\\b/gi, '$1 年前'],
+];
+function translate(value) {
+  const trimmed = value.trim();
+  const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
+  if (greeting) return value.replace(trimmed, () => `你好，${greeting[1]}，今天想完成什么？`);
+  const greetingBuild = trimmed.match(/^Hey ([\\s\\S]+?), what should we build today\\?$/);
+  if (greetingBuild) return value.replace(trimmed, () => `嗨，${greetingBuild[1]}，今天想构建什么？`);
+  const greetingNext = trimmed.match(/^Good to see you, ([\\s\\S]+?)\\. What's next\\?$/);
+  if (greetingNext) return value.replace(trimmed, () => `很高兴见到你，${greetingNext[1]}。接下来做什么？`);
+  const greetingBack = trimmed.match(/^Welcome back, ([\\s\\S]+?)\\. Where should we pick up\\?$/);
+  if (greetingBack) return value.replace(trimmed, () => `欢迎回来，${greetingBack[1]}。我们从哪里继续？`);
+  if (/^(?:你好，[\\s\\S]+，今天想完成什么？|嗨，[\\s\\S]+，今天想构建什么？|很高兴见到你，[\\s\\S]+。接下来做什么？|欢迎回来，[\\s\\S]+。我们从哪里继续？)$/.test(trimmed)) return value;
+  return value;
+}
+function shouldSkipSubtree(node, element) {
+  // 跳过用户输入
+  if (element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]')) {
+    return true;
+  }
+  return false;
+}
+function shouldSkip(node, element) {
+  const historyItem = element.closest('[data-testid="conversation-row-sidebar"], [data-cascade-id]:not([data-testid="conversation-view"]), .past-conversations');
+  // 跳过回复正文（保留控件、折叠步骤栏、变更概览与系统提示卡片）
+  const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
+  if (agentResponse) {
+    if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
+    const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header');
+  }
+}
+const antigravityContainerSelector = [
+  '.antigravity-welcome-container',
+];
+  function restoreOriginals() {
+    const walker = document.createTreeWalker(document, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      restoreTrackedNode(node);
+    }
+  }
+  window.__antigravityZhPatchCleanup = () => {
+    flushScheduler?.cancel();
+    restoreIdeNlsMessages();
+    removePreferenceSync?.();
+  };
+  function applyChinese(resetMarks) {
+    translateNode(document);
+  }
+  function run() {
+    flushScheduler = createFlushScheduler((batchNodes, batchElements) => {
+      if (cancelled || lang !== 'zh') return;
+      for (const node of batchNodes) translateNode(node);
+      for (const element of batchElements) translateElement(element);
+    });
+  }
+})();
+"""
+        with tempfile.TemporaryDirectory(prefix='agy-layouts-') as tmp:
+            for name, content in [('legacy', legacy_base), ('modular', modular_base)]:
+                base = Path(tmp, f'{name}-base.js')
+                out = Path(tmp, f'{name}-out.js')
+                base.write_text(content, encoding='utf-8')
+                res = self.run_command('python3', str(ROOT / 'lib/zh-overlay.py'), str(base), str(out), 'agy-zh-v7', 'true')
+                self.assertNotIn('[警告]', res.stderr)
+                built = out.read_text(encoding='utf-8')
+                self.assertIn('syncChineseConversationTitles', built)
+                self.assertIn('[data-testid="home-greeting"]', built)
+                self.run_command('node', '--check', str(out))
+                full = Path(tmp, f'{name}-full.js')
+                self.run_command('python3', str(ROOT / 'lib/locale.py'), 'build', 'zh-CN', str(full), str(base), 'true')
+                self.run_command('node', '--check', str(full))
+
+    def test_zh_cn_fallback_without_upstream_overlay(self):
+        with tempfile.TemporaryDirectory(prefix='agy-fallback-') as tmp:
+            home = Path(tmp)
+            missing_url = (home / 'does-not-exist.js').as_uri()
+            data_dir = home / '.local/bin'
+            env = dict(
+                os.environ,
+                HOME=tmp,
+                AGY_ZH_APPS_DIR=str(home / 'Applications'),
+                GEMINI_CONFIG_DIR=str(home / 'config'),
+                AGY_ZH_DATA_DIR=str(data_dir),
+                AGY_ZH_OVERLAY_URL=missing_url,
+            )
+            res = self.run_command('bash', str(ROOT / 'install.sh'), '--no-shortcut', env=env)
+            self.assertIn('[警告]', res.stderr)
+            overlay = data_dir / 'antigravity-hans-overlay.js'
+            self.assertTrue(overlay.is_file())
+            self.assertIn('__antigravityZhPatchInstalled', overlay.read_text(encoding='utf-8'))
+            self.run_command('node', '--check', str(overlay))
+
+            res2 = self.run_command(str(data_dir / 'agy-zh'), 'build-overlay', '--force', env=env)
+            self.assertIn('[警告]', res2.stderr)
+            self.run_command('node', '--check', str(overlay))
+
+    def test_zh_cn_reuses_cached_base_when_force_refresh_fails(self):
+        with tempfile.TemporaryDirectory(prefix='agy-cache-') as tmp:
+            home = Path(tmp)
+            data_dir = home / '.local/bin'
+            data_dir.mkdir(parents=True)
+            base = data_dir / 'antigravity-hans-overlay.base.js'
+            cached_text = 'window.__antigravityZhPatchInstalled = true;\n// cached-sentinel\n'
+            base.write_text(cached_text, encoding='utf-8')
+            env = dict(
+                os.environ,
+                HOME=tmp,
+                GEMINI_CONFIG_DIR=str(home / 'config'),
+                AGY_ZH_DATA_DIR=str(data_dir),
+                AGY_ZH_OVERLAY_URL=(home / 'missing.js').as_uri(),
+            )
+            res = self.run_command('bash', str(ROOT / 'bin/agy-zh'), 'build-overlay', '--force', env=env)
+            self.assertIn('继续使用本地缓存词库', res.stderr)
+            self.assertEqual(base.read_text(encoding='utf-8'), cached_text)
+            overlay = data_dir / 'antigravity-hans-overlay.js'
+            overlay_text = overlay.read_text(encoding='utf-8')
+            self.assertIn('agy-zh-v7', overlay_text)
+            self.assertIn('// cached-sentinel', overlay_text)
+            self.run_command('node', '--check', str(overlay))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

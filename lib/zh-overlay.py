@@ -28,11 +28,25 @@ class AnchorError(RuntimeError):
     pass
 
 
-def replace_once(text, target, replacement, label):
-    count = text.count(target)
-    if count != 1:
-        raise AnchorError(f"锚点匹配异常 ({label}): count={count}")
+def indent_lines(text, prefix):
+    if not prefix:
+        return text
+    return "\n".join(prefix + line if line else "" for line in text.split("\n"))
+
+
+def replace_first_match(text, variants, label):
+    counts = [text.count(target) for target, _ in variants]
+    if any(count > 1 for count in counts):
+        raise AnchorError(f"锚点匹配异常 ({label}): counts={counts}")
+    hits = [(target, replacement) for (target, replacement), count in zip(variants, counts) if count == 1]
+    if len(hits) != 1:
+        raise AnchorError(f"锚点匹配异常 ({label}): counts={counts}")
+    target, replacement = hits[0]
     return text.replace(target, replacement, 1)
+
+
+def replace_once(text, target, replacement, label):
+    return replace_first_match(text, [(target, replacement)], label)
 
 
 try:
@@ -72,101 +86,152 @@ try:
     js = replace_once(js, phrases_anchor, phrases_addon, "phrases")
 
     # 2. 补充简短相对时间及单节点工具步骤行规则（8m ago / Editing foo.js / ... finished）
-    dyn_anchor = "  const dynamicPatterns = ["
-    dyn_addon = """  const dynamicPatterns = [
-    [/^(\\d+)\\s*s\\s+ago$/i, '$1秒前'],
-    [/^(\\d+)\\s*m\\s+ago$/i, '$1分钟前'],
-    [/^(\\d+)\\s*h\\s+ago$/i, '$1小时前'],
-    [/^(\\d+)\\s*d\\s+ago$/i, '$1天前'],
-    [/^(\\d+)\\s*w\\s+ago$/i, '$1周前'],
-    [/^(\\d+)\\s*mo\\s+ago$/i, '$1个月前'],
-    [/^(\\d+)\\s*y\\s+ago$/i, '$1年前'],
-    [/^(?:Just now|now)$/i, '刚刚'],
-    [/^(Analyzed|Analyzing|Editing|Edited|Creating|Created|Updating|Updated|Deleting|Deleted|Reading|Writing|Wrote|Listing|Listed|Checking|Checked|Viewing|Viewed)\\s+(Task\\s+Logs?|[^\\r\\n]+?(?:\\.[A-Za-z0-9]{1,8}(?:\\s+#L\\d+(?:-\\d+)?)?|\\s+#L\\d+(?:-\\d+)?)|[^\\s\\r\\n]+)$/i, (_m, verb, target) => {
-      const verbMap = {
-        analyzed: '已分析', analyzing: '正在分析', editing: '正在编辑', edited: '已编辑',
-        creating: '正在创建', created: '已创建', updating: '正在更新', updated: '已更新',
-        deleting: '正在删除', deleted: '已删除', reading: '正在读取', writing: '正在写入',
-        wrote: '已写入', listing: '正在列出', listed: '已列出', checking: '正在检查',
-        checked: '已检查', viewing: '正在查看', viewed: '已查看',
-      };
-      const zhVerb = verbMap[verb.toLowerCase()] || verb;
-      const zhTarget = /^Task\\s+Logs?$/i.test(target) ? '任务日志' : target;
-      return `${zhVerb} ${zhTarget}`;
-    }],
-    [/^([\\s\\S]{3,}?)(?<!\\b(?:as|is|are|was|were|be|been|not|never|when|until|before|after|get|got|almost|completely|nearly|just|already))\\s+finished$/i, '$1 已完成'],"""
-    js = replace_once(js, dyn_anchor, dyn_addon, "dynamicPatterns_time")
+    dyn_entries = """  [/^(\\d+)\\s*s\\s+ago$/i, '$1秒前'],
+  [/^(\\d+)\\s*m\\s+ago$/i, '$1分钟前'],
+  [/^(\\d+)\\s*h\\s+ago$/i, '$1小时前'],
+  [/^(\\d+)\\s*d\\s+ago$/i, '$1天前'],
+  [/^(\\d+)\\s*w\\s+ago$/i, '$1周前'],
+  [/^(\\d+)\\s*mo\\s+ago$/i, '$1个月前'],
+  [/^(\\d+)\\s*y\\s+ago$/i, '$1年前'],
+  [/^(?:Just now|now)$/i, '刚刚'],
+  [/^(Analyzed|Analyzing|Editing|Edited|Creating|Created|Updating|Updated|Deleting|Deleted|Reading|Writing|Wrote|Listing|Listed|Checking|Checked|Viewing|Viewed)\\s+(Task\\s+Logs?|[^\\r\\n]+?(?:\\.[A-Za-z0-9]{1,8}(?:\\s+#L\\d+(?:-\\d+)?)?|\\s+#L\\d+(?:-\\d+)?)|[^\\s\\r\\n]+)$/i, (_m, verb, target) => {
+    const verbMap = {
+      analyzed: '已分析', analyzing: '正在分析', editing: '正在编辑', edited: '已编辑',
+      creating: '正在创建', created: '已创建', updating: '正在更新', updated: '已更新',
+      deleting: '正在删除', deleted: '已删除', reading: '正在读取', writing: '正在写入',
+      wrote: '已写入', listing: '正在列出', listed: '已列出', checking: '正在检查',
+      checked: '已检查', viewing: '正在查看', viewed: '已查看',
+    };
+    const zhVerb = verbMap[verb.toLowerCase()] || verb;
+    const zhTarget = /^Task\\s+Logs?$/i.test(target) ? '任务日志' : target;
+    return `${zhVerb} ${zhTarget}`;
+  }],
+  [/^([\\s\\S]{3,}?)(?<!\\b(?:as|is|are|was|were|be|been|not|never|when|until|before|after|get|got|almost|completely|nearly|just|already))\\s+finished$/i, '$1 已完成'],"""
+    js = replace_first_match(
+        js,
+        [
+            ("  const dynamicPatterns = [", "  const dynamicPatterns = [\n" + indent_lines(dyn_entries, "  ")),
+            ("\nconst dynamicPatterns = [", "\nconst dynamicPatterns = [\n" + dyn_entries),
+        ],
+        "dynamicPatterns_time",
+    )
 
     # 2b. 对齐已有长英文相对时间规则为紧凑格式（8分钟前）
-    ago_anchor = """    [/(\\d+)\\s*minutes?\\s*ago\\b/gi, '$1 分钟前'],
-    [/(\\d+)\\s*hours?\\s*ago\\b/gi, '$1 小时前'],
-    [/(\\d+)\\s*days?\\s*ago\\b/gi, '$1 天前'],
-    [/(\\d+)\\s*weeks?\\s*ago\\b/gi, '$1 周前'],
-    [/(\\d+)\\s*months?\\s*ago\\b/gi, '$1 个月前'],
-    [/(\\d+)\\s*years?\\s*ago\\b/gi, '$1 年前'],"""
-    ago_compact = """    [/(\\d+)\\s*minutes?\\s*ago\\b/gi, '$1分钟前'],
-    [/(\\d+)\\s*hours?\\s*ago\\b/gi, '$1小时前'],
-    [/(\\d+)\\s*days?\\s*ago\\b/gi, '$1天前'],
-    [/(\\d+)\\s*weeks?\\s*ago\\b/gi, '$1周前'],
-    [/(\\d+)\\s*months?\\s*ago\\b/gi, '$1个月前'],
-    [/(\\d+)\\s*years?\\s*ago\\b/gi, '$1年前'],"""
-    js = replace_once(js, ago_anchor, ago_compact, "existing_ago")
+    ago_anchor_core = """[/(\\d+)\\s*minutes?\\s*ago\\b/gi, '$1 分钟前'],
+[/(\\d+)\\s*hours?\\s*ago\\b/gi, '$1 小时前'],
+[/(\\d+)\\s*days?\\s*ago\\b/gi, '$1 天前'],
+[/(\\d+)\\s*weeks?\\s*ago\\b/gi, '$1 周前'],
+[/(\\d+)\\s*months?\\s*ago\\b/gi, '$1 个月前'],
+[/(\\d+)\\s*years?\\s*ago\\b/gi, '$1 年前'],"""
+    ago_compact_core = """[/(\\d+)\\s*minutes?\\s*ago\\b/gi, '$1分钟前'],
+[/(\\d+)\\s*hours?\\s*ago\\b/gi, '$1小时前'],
+[/(\\d+)\\s*days?\\s*ago\\b/gi, '$1天前'],
+[/(\\d+)\\s*weeks?\\s*ago\\b/gi, '$1周前'],
+[/(\\d+)\\s*months?\\s*ago\\b/gi, '$1个月前'],
+[/(\\d+)\\s*years?\\s*ago\\b/gi, '$1年前'],"""
+    js = replace_first_match(
+        js,
+        [(indent_lines(ago_anchor_core, indent), indent_lines(ago_compact_core, indent)) for indent in ("    ", "  ")],
+        "existing_ago",
+    )
 
     # 2c. 扩展首页全量 6 种轮换动态欢迎语（Hey guo, what should we build today? 等）
-    greeting_anchor = """    const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
+    greeting_old_anchor = """    const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
     if (greeting) return value.replace(trimmed, () => `你好，${greeting[1]}，今天想完成什么？`);
     if (/^你好，[\\s\\S]+，今天想完成什么？$/.test(trimmed)) return value;"""
-    greeting_patched = """    const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
-    if (greeting) return value.replace(trimmed, () => `你好，${greeting[1]}，今天想完成什么？`);
-    if (trimmed === 'Hey there, what should we build today?') return value.replace(trimmed, '你好，今天想构建什么？');
-    const heyNamed = trimmed.match(/^Hey ([\\s\\S]+?), what should we build today\\?$/);
-    if (heyNamed && heyNamed[1].toLowerCase() !== 'there') return value.replace(trimmed, () => `你好，${heyNamed[1]}，今天想构建什么？`);
-    if (trimmed === 'Welcome back. Where should we pick up?') return value.replace(trimmed, '欢迎回来，我们从哪里继续？');
-    const welcomeNamed = trimmed.match(/^Welcome back, ([\\s\\S]+?)\\. Where should we pick up\\?$/);
-    if (welcomeNamed) return value.replace(trimmed, () => `欢迎回来，${welcomeNamed[1]}，我们从哪里继续？`);
-    if (trimmed === "Good to see you. What's next?") return value.replace(trimmed, '很高兴见到你，接下来做什么？');
-    const goodSeeNamed = trimmed.match(/^Good to see you, ([\\s\\S]+?)\\. What's next\\?$/);
-    if (goodSeeNamed) return value.replace(trimmed, () => `很高兴见到你，${goodSeeNamed[1]}，接下来做什么？`);
-    if (/^(?:你好(?:，[\\s\\S]+)?，今天想(?:完成|构建)什么？|欢迎回来(?:，[\\s\\S]+)?，我们从哪里继续？|很高兴见到你(?:，[\\s\\S]+)?，接下来做什么？)$/.test(trimmed)) return value;"""
-    js = replace_once(js, greeting_anchor, greeting_patched, "home_greetings")
+    greeting_new_anchor = """  const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
+  if (greeting) return value.replace(trimmed, () => `你好，${greeting[1]}，今天想完成什么？`);
+  const greetingBuild = trimmed.match(/^Hey ([\\s\\S]+?), what should we build today\\?$/);
+  if (greetingBuild) return value.replace(trimmed, () => `嗨，${greetingBuild[1]}，今天想构建什么？`);
+  const greetingNext = trimmed.match(/^Good to see you, ([\\s\\S]+?)\\. What's next\\?$/);
+  if (greetingNext) return value.replace(trimmed, () => `很高兴见到你，${greetingNext[1]}。接下来做什么？`);
+  const greetingBack = trimmed.match(/^Welcome back, ([\\s\\S]+?)\\. Where should we pick up\\?$/);
+  if (greetingBack) return value.replace(trimmed, () => `欢迎回来，${greetingBack[1]}。我们从哪里继续？`);
+  if (/^(?:你好，[\\s\\S]+，今天想完成什么？|嗨，[\\s\\S]+，今天想构建什么？|很高兴见到你，[\\s\\S]+。接下来做什么？|欢迎回来，[\\s\\S]+。我们从哪里继续？)$/.test(trimmed)) return value;"""
+    greeting_patched_core = """const greeting = trimmed.match(/^Hi ([\\s\\S]+?), what can we get done today\\?$/);
+if (greeting) return value.replace(trimmed, () => `你好，${greeting[1]}，今天想完成什么？`);
+if (trimmed === 'Hey there, what should we build today?') return value.replace(trimmed, '你好，今天想构建什么？');
+const heyNamed = trimmed.match(/^Hey ([\\s\\S]+?), what should we build today\\?$/);
+if (heyNamed && heyNamed[1].toLowerCase() !== 'there') return value.replace(trimmed, () => `你好，${heyNamed[1]}，今天想构建什么？`);
+if (trimmed === 'Welcome back. Where should we pick up?') return value.replace(trimmed, '欢迎回来，我们从哪里继续？');
+const welcomeNamed = trimmed.match(/^Welcome back, ([\\s\\S]+?)\\. Where should we pick up\\?$/);
+if (welcomeNamed) return value.replace(trimmed, () => `欢迎回来，${welcomeNamed[1]}，我们从哪里继续？`);
+if (trimmed === "Good to see you. What's next?") return value.replace(trimmed, '很高兴见到你，接下来做什么？');
+const goodSeeNamed = trimmed.match(/^Good to see you, ([\\s\\S]+?)\\. What's next\\?$/);
+if (goodSeeNamed) return value.replace(trimmed, () => `很高兴见到你，${goodSeeNamed[1]}，接下来做什么？`);
+if (/^(?:你好(?:，[\\s\\S]+)?，今天想(?:完成|构建)什么？|嗨，[\\s\\S]+，今天想构建什么？|欢迎回来(?:，[\\s\\S]+)?[，。]我们从哪里继续？|很高兴见到你(?:，[\\s\\S]+)?[，。]接下来做什么？)$/.test(trimmed)) return value;"""
+    js = replace_first_match(
+        js,
+        [
+            (greeting_old_anchor, indent_lines(greeting_patched_core, "    ")),
+            (greeting_new_anchor, indent_lines(greeting_patched_core, "  ")),
+        ],
+        "home_greetings",
+    )
 
     # 3. 修复 [data-cascade-id] 误判主对话视图，并放行消息时间戳与首页欢迎语容器
-    skip_anchor = "const historyItem = element.closest('[data-testid=\"conversation-row-sidebar\"], [data-cascade-id], "
-    skip_fixed = "const historyItem = element.closest('[data-testid^=\"conversation-row-\"], [data-testid=\"side-question-row\"], [data-testid=\"subagent-node\"], "
-    js = replace_once(js, skip_anchor, skip_fixed, "historyItem_selector")
+    js = replace_first_match(
+        js,
+        [
+            (
+                "const historyItem = element.closest('[data-testid=\"conversation-row-sidebar\"], [data-cascade-id], ",
+                "const historyItem = element.closest('[data-testid^=\"conversation-row-\"], [data-testid=\"side-question-row\"], [data-testid=\"subagent-node\"], ",
+            ),
+            (
+                "const historyItem = element.closest('[data-testid=\"conversation-row-sidebar\"], [data-cascade-id]:not([data-testid=\"conversation-view\"]), ",
+                "const historyItem = element.closest('[data-testid^=\"conversation-row-\"], [data-testid=\"side-question-row\"], [data-testid=\"subagent-node\"], [data-cascade-id]:not([data-testid=\"conversation-view\"]), ",
+            ),
+        ],
+        "historyItem_selector",
+    )
 
-    user_skip_anchor = """    // 跳过用户输入
-    if (element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]')) {
-      return true;
-    }"""
-    user_skip_patched = """    // 跳过用户输入气泡正文（保留 user-message-actions 时间戳与操作按钮）
-    if (element.closest('[data-testid="user-message-bubble"], [data-testid="user-message-content"], .agy-user-bubble, .agy-user-bubble-frame')) {
-      return true;
-    }"""
-    js = replace_once(js, user_skip_anchor, user_skip_patched, "user_input_skip")
+    user_skip_anchor_core = """// 跳过用户输入
+if (element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]')) {
+  return true;
+}"""
+    user_skip_patched_core = """// 跳过用户输入气泡正文（保留 user-message-actions 时间戳与操作按钮）
+if (element.closest('[data-testid="user-message-bubble"], [data-testid="user-message-content"], .agy-user-bubble, .agy-user-bubble-frame')) {
+  return true;
+}"""
+    js = replace_first_match(
+        js,
+        [(indent_lines(user_skip_anchor_core, indent), indent_lines(user_skip_patched_core, indent)) for indent in ("    ", "  ")],
+        "user_input_skip",
+    )
 
-    agent_resp_anchor = """    // 跳过回复正文（保留控件、折叠步骤栏、变更概览与系统提示卡片）
-    const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
-    if (agentResponse) {
-      if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
-      const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header');"""
-    agent_resp_patched = """    const userStep = element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]');
-    if (userStep) {
-      if (node.nodeType === Node.ELEMENT_NODE && element === userStep) return false;
-      if (!element.closest('[data-testid="user-message-actions"], [data-screenshot-volatile], button, [role="button"]')) return true;
-    }
+    agent_resp_anchor_core = """// 跳过回复正文（保留控件、折叠步骤栏、变更概览与系统提示卡片）
+const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
+if (agentResponse) {
+  if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
+  const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header');"""
+    agent_resp_patched_core = """const userStep = element.closest('[data-testid="user-input-step"], [aria-label="User message"], [aria-label="用户消息"]');
+if (userStep) {
+  if (node.nodeType === Node.ELEMENT_NODE && element === userStep) return false;
+  if (!element.closest('[data-testid="user-message-actions"], [data-screenshot-volatile], button, [role="button"]')) return true;
+}
 
-    // 跳过回复正文（保留控件、折叠步骤栏、消息操作时间栏、变更概览与系统提示卡片）
-    const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
-    if (agentResponse) {
-      if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
-      const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cascade-system-message-toolbar"], [data-screenshot-volatile], [data-testid="cleared-step-notice"], .files-changed-header');"""
-    js = replace_once(js, agent_resp_anchor, agent_resp_patched, "agent_resp_skip")
+// 跳过回复正文（保留控件、折叠步骤栏、消息操作时间栏、变更概览与系统提示卡片）
+const agentResponse = element.closest('[aria-label="Agent response"], [aria-label="智能体回复"]');
+if (agentResponse) {
+  if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;
+  const isInteractive = element.closest('button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cascade-system-message-toolbar"], [data-screenshot-volatile], [data-testid="cleared-step-notice"], .files-changed-header');"""
+    js = replace_first_match(
+        js,
+        [(indent_lines(agent_resp_anchor_core, indent), indent_lines(agent_resp_patched_core, indent)) for indent in ("    ", "  ")],
+        "agent_resp_skip",
+    )
 
-    container_anchor = "    '.antigravity-welcome-container',"
-    container_patched = """    '.antigravity-welcome-container',
-    '[data-testid="home-greeting"]',"""
-    js = replace_once(js, container_anchor, container_patched, "container_sel")
+    js = replace_first_match(
+        js,
+        [
+            (
+                "\n" + indent + "'.antigravity-welcome-container',",
+                "\n" + indent + "'.antigravity-welcome-container',\n" + indent + "'[data-testid=\"home-greeting\"]',",
+            )
+            for indent in ("    ", "  ")
+        ],
+        "container_sel",
+    )
 
     # 4. 在 cleanup 中清理标题复检定时器
     cleanup_anchor = """    flushScheduler?.cancel();

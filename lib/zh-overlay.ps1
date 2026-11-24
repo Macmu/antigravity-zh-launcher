@@ -1,9 +1,50 @@
-﻿function Resolve-OverlayUnicode {
+function Resolve-OverlayUnicode {
     param([string]$Text)
     return [regex]::Replace($Text, '\\u([0-9a-fA-F]{4})', {
         param($m)
         [char][convert]::ToInt32($m.Groups[1].Value, 16)
     })
+}
+
+function Add-LineIndent {
+    param(
+        [string]$Text,
+        [string]$Indent
+    )
+    if ([string]::IsNullOrEmpty($Indent)) { return $Text }
+    $lines = $Text -split "`n"
+    return (($lines | ForEach-Object { if ([string]::IsNullOrEmpty($_)) { '' } else { $Indent + $_ } }) -join "`n")
+}
+
+function Replace-FirstMatch {
+    param(
+        [string]$Text,
+        [array]$Variants,
+        [string]$Label
+    )
+    $hits = @()
+    $counts = @()
+    foreach ($variant in $Variants) {
+        $target = [string]$variant.Target
+        $idx = $Text.IndexOf($target, [System.StringComparison]::Ordinal)
+        if ($idx -lt 0) {
+            $counts += 0
+            continue
+        }
+        $second = $Text.IndexOf($target, $idx + $target.Length, [System.StringComparison]::Ordinal)
+        if ($second -ge 0) {
+            throw "Enhanced overlay anchor matched multiple times: $Label"
+        }
+        $counts += 1
+        $hits += $variant
+    }
+    if ($hits.Count -ne 1) {
+        throw "Enhanced overlay anchor mismatch ($Label): counts=$($counts -join ',')"
+    }
+    $hit = $hits[0]
+    $hitTarget = [string]$hit.Target
+    $hitIdx = $Text.IndexOf($hitTarget, [System.StringComparison]::Ordinal)
+    return $Text.Substring(0, $hitIdx) + [string]$hit.Replacement + $Text.Substring($hitIdx + $hitTarget.Length)
 }
 
 function Replace-Once {
@@ -13,33 +54,45 @@ function Replace-Once {
         [string]$Replacement,
         [string]$Label
     )
-    $idx = $Text.IndexOf($Target, [System.StringComparison]::Ordinal)
-    if ($idx -lt 0) {
-        throw "Enhanced overlay anchor missing: $Label"
-    }
-    $second = $Text.IndexOf($Target, $idx + $Target.Length, [System.StringComparison]::Ordinal)
-    if ($second -ge 0) {
-        throw "Enhanced overlay anchor matched multiple times: $Label"
-    }
-    return $Text.Substring(0, $idx) + $Replacement + $Text.Substring($idx + $Target.Length)
+    return Replace-FirstMatch -Text $Text -Variants @(@{ Target = $Target; Replacement = $Replacement }) -Label $Label
 }
 
 function Ensure-BaseOverlay {
     param([bool]$Refresh = $false)
     if (-not $Refresh -and (Test-Path $BaseOverlayJs) -and ((Get-Item $BaseOverlayJs).Length -gt 1024)) {
-        return
+        return $true
     }
     $dir = Split-Path -Parent $BaseOverlayJs
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $tmpJs = Join-Path $dir ('.antigravity-hans-overlay.base.' + [System.Guid]::NewGuid().ToString('N') + '.tmp')
+    $tag = if ($TagInfo) { $TagInfo } else { '[INFO]' }
+    $downloadUrl = if ($OverlayUrl) {
+        $OverlayUrl
+    } elseif ($env:AGY_ZH_OVERLAY_URL) {
+        $env:AGY_ZH_OVERLAY_URL
+    } else {
+        'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js'
+    }
     try {
-        Write-Host "$TagInfo $(Resolve-ZhText '\u6b63\u5728\u4e0b\u8f7d\u57fa\u7840\u6c49\u5316\u8bcd\u5e93\u811a\u672c...')"
-        Invoke-WebRequest -UseBasicParsing -Uri $OverlayUrl -OutFile $tmpJs
+        Write-Host "$tag $(Resolve-OverlayUnicode '\u6b63\u5728\u4e0b\u8f7d\u57fa\u7840\u6c49\u5316\u8bcd\u5e93\u811a\u672c...')"
+        Invoke-WebRequest -UseBasicParsing -Uri $downloadUrl -OutFile $tmpJs -TimeoutSec 20
         $check = [System.IO.File]::ReadAllText($tmpJs, [System.Text.Encoding]::UTF8)
         if (-not $check.Contains('__antigravityZhPatchInstalled')) {
-            throw (Resolve-ZhText '\u4e0b\u8f7d\u7684\u57fa\u7840\u6c49\u5316\u811a\u672c\u6821\u9a8c\u5931\u8d25\u3002')
+            throw (Resolve-OverlayUnicode '\u4e0b\u8f7d\u7684\u57fa\u7840\u6c49\u5316\u811a\u672c\u6821\u9a8c\u5931\u8d25\u3002')
         }
         Move-Item -Force $tmpJs $BaseOverlayJs
+        return $true
+    } catch {
+        $errMsg = $_.Exception.Message
+        if (Get-Command Write-AgyLog -ErrorAction SilentlyContinue) {
+            Write-AgyLog -Level 'WARN' -Message "Failed to fetch base overlay from ${downloadUrl}: $errMsg"
+        }
+        if ((Test-Path $BaseOverlayJs) -and ((Get-Item $BaseOverlayJs).Length -gt 1024)) {
+            Write-Warning (Resolve-OverlayUnicode '\u62c9\u53d6\u4e0a\u6e38\u57fa\u7840\u8bcd\u5e93\u5931\u8d25\uff0c\u7ee7\u7eed\u4f7f\u7528\u672c\u5730\u7f13\u5b58\u8bcd\u5e93\u3002')
+            return $true
+        }
+        Write-Warning (Resolve-OverlayUnicode '\u62c9\u53d6\u4e0a\u6e38\u57fa\u7840\u8bcd\u5e93\u5931\u8d25\uff0c\u5df2\u81ea\u52a8\u964d\u7ea7\u4f7f\u7528\u5185\u7f6e\u7b80\u4f53\u4e2d\u6587\u8bcd\u5e93\u3002')
+        return $false
     } finally {
         if (Test-Path $tmpJs) { Remove-Item -Force -Path $tmpJs -ErrorAction SilentlyContinue }
     }
@@ -47,7 +100,9 @@ function Ensure-BaseOverlay {
 
 function Ensure-EnhancedOverlay {
     param([bool]$Force = $false)
-    Ensure-BaseOverlay -Refresh $Force
+    if (-not (Ensure-BaseOverlay -Refresh $Force)) {
+        return $false
+    }
     $baseHash = (Get-FileHash -Algorithm SHA256 -Path $BaseOverlayJs).Hash.ToLowerInvariant().Substring(0, 16)
     $headerComment = "// antigravity-zh-launcher overlay: $OverlayVersion; base_sha256=$baseHash"
     if (-not $Force -and (Test-Path $OverlayJs)) {
@@ -96,114 +151,147 @@ function Ensure-EnhancedOverlay {
         ) -join "`n"
         $js = Replace-Once -Text $js -Target '  const phrases = new Map([' -Replacement $phrasesAddon -Label 'phrases'
 
-        $dynAddon = Resolve-OverlayUnicode (@(
-            '  const dynamicPatterns = [',
-            '    [/^(\d+)\s*s\s+ago$/i, ''$1\u79d2\u524d''],',
-            '    [/^(\d+)\s*m\s+ago$/i, ''$1\u5206\u949f\u524d''],',
-            '    [/^(\d+)\s*h\s+ago$/i, ''$1\u5c0f\u65f6\u524d''],',
-            '    [/^(\d+)\s*d\s+ago$/i, ''$1\u5929\u524d''],',
-            '    [/^(\d+)\s*w\s+ago$/i, ''$1\u5468\u524d''],',
-            '    [/^(\d+)\s*mo\s+ago$/i, ''$1\u4e2a\u6708\u524d''],',
-            '    [/^(\d+)\s*y\s+ago$/i, ''$1\u5e74\u524d''],',
-            '    [/^(?:Just now|now)$/i, ''\u521a\u521a''],',
-            '    [/^(Analyzed|Analyzing|Editing|Edited|Creating|Created|Updating|Updated|Deleting|Deleted|Reading|Writing|Wrote|Listing|Listed|Checking|Checked|Viewing|Viewed)\s+(Task\s+Logs?|[^\r\n]+?(?:\.[A-Za-z0-9]{1,8}(?:\s+#L\d+(?:-\d+)?)?|\s+#L\d+(?:-\d+)?)|[^\s\r\n]+)$/i, (_m, verb, target) => {',
-            '      const verbMap = {',
-            '        analyzed: ''\u5df2\u5206\u6790'', analyzing: ''\u6b63\u5728\u5206\u6790'', editing: ''\u6b63\u5728\u7f16\u8f91'', edited: ''\u5df2\u7f16\u8f91'',',
-            '        creating: ''\u6b63\u5728\u521b\u5efa'', created: ''\u5df2\u521b\u5efa'', updating: ''\u6b63\u5728\u66f4\u65b0'', updated: ''\u5df2\u66f4\u65b0'',',
-            '        deleting: ''\u6b63\u5728\u5220\u9664'', deleted: ''\u5df2\u5220\u9664'', reading: ''\u6b63\u5728\u8bfb\u53d6'', writing: ''\u6b63\u5728\u5199\u5165'',',
-            '        wrote: ''\u5df2\u5199\u5165'', listing: ''\u6b63\u5728\u5217\u51fa'', listed: ''\u5df2\u5217\u51fa'', checking: ''\u6b63\u5728\u68c0\u67e5'',',
-            '        checked: ''\u5df2\u68c0\u67e5'', viewing: ''\u6b63\u5728\u67e5\u770b'', viewed: ''\u5df2\u67e5\u770b'',',
-            '      };',
-            '      const zhVerb = verbMap[verb.toLowerCase()] || verb;',
-            '      const zhTarget = /^Task\s+Logs?$/i.test(target) ? ''\u4efb\u52a1\u65e5\u5fd7'' : target;',
-            '      return `${zhVerb} ${zhTarget}`;',
-            '    }],',
-            '    [/^([\s\S]{3,}?)(?<!\b(?:as|is|are|was|were|be|been|not|never|when|until|before|after|get|got|almost|completely|nearly|just|already))\s+finished$/i, ''$1 \u5df2\u5b8c\u6210''],'
+        $dynEntries = Resolve-OverlayUnicode (@(
+            '  [/^(\d+)\s*s\s+ago$/i, ''$1\u79d2\u524d''],',
+            '  [/^(\d+)\s*m\s+ago$/i, ''$1\u5206\u949f\u524d''],',
+            '  [/^(\d+)\s*h\s+ago$/i, ''$1\u5c0f\u65f6\u524d''],',
+            '  [/^(\d+)\s*d\s+ago$/i, ''$1\u5929\u524d''],',
+            '  [/^(\d+)\s*w\s+ago$/i, ''$1\u5468\u524d''],',
+            '  [/^(\d+)\s*mo\s+ago$/i, ''$1\u4e2a\u6708\u524d''],',
+            '  [/^(\d+)\s*y\s+ago$/i, ''$1\u5e74\u524d''],',
+            '  [/^(?:Just now|now)$/i, ''\u521a\u521a''],',
+            '  [/^(Analyzed|Analyzing|Editing|Edited|Creating|Created|Updating|Updated|Deleting|Deleted|Reading|Writing|Wrote|Listing|Listed|Checking|Checked|Viewing|Viewed)\s+(Task\s+Logs?|[^\r\n]+?(?:\.[A-Za-z0-9]{1,8}(?:\s+#L\d+(?:-\d+)?)?|\s+#L\d+(?:-\d+)?)|[^\s\r\n]+)$/i, (_m, verb, target) => {',
+            '    const verbMap = {',
+            '      analyzed: ''\u5df2\u5206\u6790'', analyzing: ''\u6b63\u5728\u5206\u6790'', editing: ''\u6b63\u5728\u7f16\u8f91'', edited: ''\u5df2\u7f16\u8f91'',',
+            '      creating: ''\u6b63\u5728\u521b\u5efa'', created: ''\u5df2\u521b\u5efa'', updating: ''\u6b63\u5728\u66f4\u65b0'', updated: ''\u5df2\u66f4\u65b0'',',
+            '      deleting: ''\u6b63\u5728\u5220\u9664'', deleted: ''\u5df2\u5220\u9664'', reading: ''\u6b63\u5728\u8bfb\u53d6'', writing: ''\u6b63\u5728\u5199\u5165'',',
+            '      wrote: ''\u5df2\u5199\u5165'', listing: ''\u6b63\u5728\u5217\u51fa'', listed: ''\u5df2\u5217\u51fa'', checking: ''\u6b63\u5728\u68c0\u67e5'',',
+            '      checked: ''\u5df2\u68c0\u67e5'', viewing: ''\u6b63\u5728\u67e5\u770b'', viewed: ''\u5df2\u67e5\u770b'',',
+            '    };',
+            '    const zhVerb = verbMap[verb.toLowerCase()] || verb;',
+            '    const zhTarget = /^Task\s+Logs?$/i.test(target) ? ''\u4efb\u52a1\u65e5\u5fd7'' : target;',
+            '    return `${zhVerb} ${zhTarget}`;',
+            '  }],',
+            '  [/^([\s\S]{3,}?)(?<!\b(?:as|is|are|was|were|be|been|not|never|when|until|before|after|get|got|almost|completely|nearly|just|already))\s+finished$/i, ''$1 \u5df2\u5b8c\u6210''],'
         ) -join "`n")
-        $js = Replace-Once -Text $js -Target '  const dynamicPatterns = [' -Replacement $dynAddon -Label 'dynamicPatterns_time'
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{ Target = '  const dynamicPatterns = ['; Replacement = "  const dynamicPatterns = [`n" + (Add-LineIndent -Text $dynEntries -Indent '  ') },
+            @{ Target = "`nconst dynamicPatterns = ["; Replacement = "`nconst dynamicPatterns = [`n" + $dynEntries }
+        ) -Label 'dynamicPatterns_time'
 
-        $agoAnchor = Resolve-OverlayUnicode (@(
-            '    [/(\d+)\s*minutes?\s*ago\b/gi, ''$1 \u5206\u949f\u524d''],',
-            '    [/(\d+)\s*hours?\s*ago\b/gi, ''$1 \u5c0f\u65f6\u524d''],',
-            '    [/(\d+)\s*days?\s*ago\b/gi, ''$1 \u5929\u524d''],',
-            '    [/(\d+)\s*weeks?\s*ago\b/gi, ''$1 \u5468\u524d''],',
-            '    [/(\d+)\s*months?\s*ago\b/gi, ''$1 \u4e2a\u6708\u524d''],',
-            '    [/(\d+)\s*years?\s*ago\b/gi, ''$1 \u5e74\u524d''],'
+        $agoAnchorCore = Resolve-OverlayUnicode (@(
+            '[/(\d+)\s*minutes?\s*ago\b/gi, ''$1 \u5206\u949f\u524d''],',
+            '[/(\d+)\s*hours?\s*ago\b/gi, ''$1 \u5c0f\u65f6\u524d''],',
+            '[/(\d+)\s*days?\s*ago\b/gi, ''$1 \u5929\u524d''],',
+            '[/(\d+)\s*weeks?\s*ago\b/gi, ''$1 \u5468\u524d''],',
+            '[/(\d+)\s*months?\s*ago\b/gi, ''$1 \u4e2a\u6708\u524d''],',
+            '[/(\d+)\s*years?\s*ago\b/gi, ''$1 \u5e74\u524d''],'
         ) -join "`n")
-        $agoCompact = Resolve-OverlayUnicode (@(
-            '    [/(\d+)\s*minutes?\s*ago\b/gi, ''$1\u5206\u949f\u524d''],',
-            '    [/(\d+)\s*hours?\s*ago\b/gi, ''$1\u5c0f\u65f6\u524d''],',
-            '    [/(\d+)\s*days?\s*ago\b/gi, ''$1\u5929\u524d''],',
-            '    [/(\d+)\s*weeks?\s*ago\b/gi, ''$1\u5468\u524d''],',
-            '    [/(\d+)\s*months?\s*ago\b/gi, ''$1\u4e2a\u6708\u524d''],',
-            '    [/(\d+)\s*years?\s*ago\b/gi, ''$1\u5e74\u524d''],'
+        $agoCompactCore = Resolve-OverlayUnicode (@(
+            '[/(\d+)\s*minutes?\s*ago\b/gi, ''$1\u5206\u949f\u524d''],',
+            '[/(\d+)\s*hours?\s*ago\b/gi, ''$1\u5c0f\u65f6\u524d''],',
+            '[/(\d+)\s*days?\s*ago\b/gi, ''$1\u5929\u524d''],',
+            '[/(\d+)\s*weeks?\s*ago\b/gi, ''$1\u5468\u524d''],',
+            '[/(\d+)\s*months?\s*ago\b/gi, ''$1\u4e2a\u6708\u524d''],',
+            '[/(\d+)\s*years?\s*ago\b/gi, ''$1\u5e74\u524d''],'
         ) -join "`n")
-        $js = Replace-Once -Text $js -Target $agoAnchor -Replacement $agoCompact -Label 'existing_ago'
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{ Target = (Add-LineIndent -Text $agoAnchorCore -Indent '    '); Replacement = (Add-LineIndent -Text $agoCompactCore -Indent '    ') },
+            @{ Target = (Add-LineIndent -Text $agoAnchorCore -Indent '  ');   Replacement = (Add-LineIndent -Text $agoCompactCore -Indent '  ') }
+        ) -Label 'existing_ago'
 
-        $greetingAnchor = Resolve-OverlayUnicode (@(
+        $greetingOldAnchor = Resolve-OverlayUnicode (@(
             '    const greeting = trimmed.match(/^Hi ([\s\S]+?), what can we get done today\?$/);',
             '    if (greeting) return value.replace(trimmed, () => `\u4f60\u597d\uff0c${greeting[1]}\uff0c\u4eca\u5929\u60f3\u5b8c\u6210\u4ec0\u4e48\uff1f`);',
             '    if (/^\u4f60\u597d\uff0c[\s\S]+\uff0c\u4eca\u5929\u60f3\u5b8c\u6210\u4ec0\u4e48\uff1f$/.test(trimmed)) return value;'
         ) -join "`n")
-        $greetingPatched = Resolve-OverlayUnicode (@(
-            '    const greeting = trimmed.match(/^Hi ([\s\S]+?), what can we get done today\?$/);',
-            '    if (greeting) return value.replace(trimmed, () => `\u4f60\u597d\uff0c${greeting[1]}\uff0c\u4eca\u5929\u60f3\u5b8c\u6210\u4ec0\u4e48\uff1f`);',
-            '    if (trimmed === ''Hey there, what should we build today?'') return value.replace(trimmed, ''\u4f60\u597d\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f'');',
-            '    const heyNamed = trimmed.match(/^Hey ([\s\S]+?), what should we build today\?$/);',
-            '    if (heyNamed && heyNamed[1].toLowerCase() !== ''there'') return value.replace(trimmed, () => `\u4f60\u597d\uff0c${heyNamed[1]}\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f`);',
-            '    if (trimmed === ''Welcome back. Where should we pick up?'') return value.replace(trimmed, ''\u6b22\u8fce\u56de\u6765\uff0c\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f'');',
-            '    const welcomeNamed = trimmed.match(/^Welcome back, ([\s\S]+?)\. Where should we pick up\?$/);',
-            '    if (welcomeNamed) return value.replace(trimmed, () => `\u6b22\u8fce\u56de\u6765\uff0c${welcomeNamed[1]}\uff0c\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f`);',
-            '    if (trimmed === "Good to see you. What''s next?") return value.replace(trimmed, ''\u5f88\u9ad8\u5174\u89c1\u5230\u4f60\uff0c\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f'');',
-            '    const goodSeeNamed = trimmed.match(/^Good to see you, ([\s\S]+?)\. What''s next\?$/);',
-            '    if (goodSeeNamed) return value.replace(trimmed, () => `\u5f88\u9ad8\u5174\u89c1\u5230\u4f60\uff0c${goodSeeNamed[1]}\uff0c\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f`);',
-            '    if (/^(?:\u4f60\u597d(?:\uff0c[\s\S]+)?\uff0c\u4eca\u5929\u60f3(?:\u5b8c\u6210|\u6784\u5efa)\u4ec0\u4e48\uff1f|\u6b22\u8fce\u56de\u6765(?:\uff0c[\s\S]+)?\uff0c\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f|\u5f88\u9ad8\u5174\u89c1\u5230\u4f60(?:\uff0c[\s\S]+)?\uff0c\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f)$/.test(trimmed)) return value;'
+        $greetingNewAnchor = Resolve-OverlayUnicode (@(
+            '  const greeting = trimmed.match(/^Hi ([\s\S]+?), what can we get done today\?$/);',
+            '  if (greeting) return value.replace(trimmed, () => `\u4f60\u597d\uff0c${greeting[1]}\uff0c\u4eca\u5929\u60f3\u5b8c\u6210\u4ec0\u4e48\uff1f`);',
+            '  const greetingBuild = trimmed.match(/^Hey ([\s\S]+?), what should we build today\?$/);',
+            '  if (greetingBuild) return value.replace(trimmed, () => `\u55e8\uff0c${greetingBuild[1]}\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f`);',
+            '  const greetingNext = trimmed.match(/^Good to see you, ([\s\S]+?)\. What''s next\?$/);',
+            '  if (greetingNext) return value.replace(trimmed, () => `\u5f88\u9ad8\u5174\u89c1\u5230\u4f60\uff0c${greetingNext[1]}\u3002\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f`);',
+            '  const greetingBack = trimmed.match(/^Welcome back, ([\s\S]+?)\. Where should we pick up\?$/);',
+            '  if (greetingBack) return value.replace(trimmed, () => `\u6b22\u8fce\u56de\u6765\uff0c${greetingBack[1]}\u3002\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f`);',
+            '  if (/^(?:\u4f60\u597d\uff0c[\s\S]+\uff0c\u4eca\u5929\u60f3\u5b8c\u6210\u4ec0\u4e48\uff1f|\u55e8\uff0c[\s\S]+\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f|\u5f88\u9ad8\u5174\u89c1\u5230\u4f60\uff0c[\s\S]+\u3002\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f|\u6b22\u8fce\u56de\u6765\uff0c[\s\S]+\u3002\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f)$/.test(trimmed)) return value;'
         ) -join "`n")
-        $js = Replace-Once -Text $js -Target $greetingAnchor -Replacement $greetingPatched -Label 'home_greetings'
+        $greetingPatchedCore = Resolve-OverlayUnicode (@(
+            'const greeting = trimmed.match(/^Hi ([\s\S]+?), what can we get done today\?$/);',
+            'if (greeting) return value.replace(trimmed, () => `\u4f60\u597d\uff0c${greeting[1]}\uff0c\u4eca\u5929\u60f3\u5b8c\u6210\u4ec0\u4e48\uff1f`);',
+            'if (trimmed === ''Hey there, what should we build today?'') return value.replace(trimmed, ''\u4f60\u597d\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f'');',
+            'const heyNamed = trimmed.match(/^Hey ([\s\S]+?), what should we build today\?$/);',
+            'if (heyNamed && heyNamed[1].toLowerCase() !== ''there'') return value.replace(trimmed, () => `\u4f60\u597d\uff0c${heyNamed[1]}\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f`);',
+            'if (trimmed === ''Welcome back. Where should we pick up?'') return value.replace(trimmed, ''\u6b22\u8fce\u56de\u6765\uff0c\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f'');',
+            'const welcomeNamed = trimmed.match(/^Welcome back, ([\s\S]+?)\. Where should we pick up\?$/);',
+            'if (welcomeNamed) return value.replace(trimmed, () => `\u6b22\u8fce\u56de\u6765\uff0c${welcomeNamed[1]}\uff0c\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f`);',
+            'if (trimmed === "Good to see you. What''s next?") return value.replace(trimmed, ''\u5f88\u9ad8\u5174\u89c1\u5230\u4f60\uff0c\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f'');',
+            'const goodSeeNamed = trimmed.match(/^Good to see you, ([\s\S]+?)\. What''s next\?$/);',
+            'if (goodSeeNamed) return value.replace(trimmed, () => `\u5f88\u9ad8\u5174\u89c1\u5230\u4f60\uff0c${goodSeeNamed[1]}\uff0c\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f`);',
+            'if (/^(?:\u4f60\u597d(?:\uff0c[\s\S]+)?\uff0c\u4eca\u5929\u60f3(?:\u5b8c\u6210|\u6784\u5efa)\u4ec0\u4e48\uff1f|\u55e8\uff0c[\s\S]+\uff0c\u4eca\u5929\u60f3\u6784\u5efa\u4ec0\u4e48\uff1f|\u6b22\u8fce\u56de\u6765(?:\uff0c[\s\S]+)?[\uff0c\u3002]\u6211\u4eec\u4ece\u54ea\u91cc\u7ee7\u7eed\uff1f|\u5f88\u9ad8\u5174\u89c1\u5230\u4f60(?:\uff0c[\s\S]+)?[\uff0c\u3002]\u63a5\u4e0b\u6765\u505a\u4ec0\u4e48\uff1f)$/.test(trimmed)) return value;'
+        ) -join "`n")
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{ Target = $greetingOldAnchor; Replacement = (Add-LineIndent -Text $greetingPatchedCore -Indent '    ') },
+            @{ Target = $greetingNewAnchor; Replacement = (Add-LineIndent -Text $greetingPatchedCore -Indent '  ') }
+        ) -Label 'home_greetings'
 
-        $skipAnchor = 'const historyItem = element.closest(''[data-testid="conversation-row-sidebar"], [data-cascade-id], '
-        $skipFixed = 'const historyItem = element.closest(''[data-testid^="conversation-row-"], [data-testid="side-question-row"], [data-testid="subagent-node"], '
-        $js = Replace-Once -Text $js -Target $skipAnchor -Replacement $skipFixed -Label 'historyItem_selector'
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{
+                Target = 'const historyItem = element.closest(''[data-testid="conversation-row-sidebar"], [data-cascade-id], '
+                Replacement = 'const historyItem = element.closest(''[data-testid^="conversation-row-"], [data-testid="side-question-row"], [data-testid="subagent-node"], '
+            },
+            @{
+                Target = 'const historyItem = element.closest(''[data-testid="conversation-row-sidebar"], [data-cascade-id]:not([data-testid="conversation-view"]), '
+                Replacement = 'const historyItem = element.closest(''[data-testid^="conversation-row-"], [data-testid="side-question-row"], [data-testid="subagent-node"], [data-cascade-id]:not([data-testid="conversation-view"]), '
+            }
+        ) -Label 'historyItem_selector'
 
-        $userSkipAnchor = Resolve-OverlayUnicode (@(
-            '    // \u8df3\u8fc7\u7528\u6237\u8f93\u5165',
-            '    if (element.closest(''[data-testid="user-input-step"], [aria-label="User message"], [aria-label="\u7528\u6237\u6d88\u606f"]'')) {',
-            '      return true;',
-            '    }'
+        $userSkipAnchorCore = Resolve-OverlayUnicode (@(
+            '// \u8df3\u8fc7\u7528\u6237\u8f93\u5165',
+            'if (element.closest(''[data-testid="user-input-step"], [aria-label="User message"], [aria-label="\u7528\u6237\u6d88\u606f"]'')) {',
+            '  return true;',
+            '}'
         ) -join "`n")
-        $userSkipPatched = Resolve-OverlayUnicode (@(
-            '    // \u8df3\u8fc7\u7528\u6237\u8f93\u5165\u6c14\u6ce1\u6b63\u6587\uff08\u4fdd\u7559 user-message-actions \u65f6\u95f4\u6233\u4e0e\u64cd\u4f5c\u6309\u94ae\uff09',
-            '    if (element.closest(''[data-testid="user-message-bubble"], [data-testid="user-message-content"], .agy-user-bubble, .agy-user-bubble-frame'')) {',
-            '      return true;',
-            '    }'
+        $userSkipPatchedCore = Resolve-OverlayUnicode (@(
+            '// \u8df3\u8fc7\u7528\u6237\u8f93\u5165\u6c14\u6ce1\u6b63\u6587\uff08\u4fdd\u7559 user-message-actions \u65f6\u95f4\u6233\u4e0e\u64cd\u4f5c\u6309\u94ae\uff09',
+            'if (element.closest(''[data-testid="user-message-bubble"], [data-testid="user-message-content"], .agy-user-bubble, .agy-user-bubble-frame'')) {',
+            '  return true;',
+            '}'
         ) -join "`n")
-        $js = Replace-Once -Text $js -Target $userSkipAnchor -Replacement $userSkipPatched -Label 'user_input_skip'
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{ Target = (Add-LineIndent -Text $userSkipAnchorCore -Indent '    '); Replacement = (Add-LineIndent -Text $userSkipPatchedCore -Indent '    ') },
+            @{ Target = (Add-LineIndent -Text $userSkipAnchorCore -Indent '  ');   Replacement = (Add-LineIndent -Text $userSkipPatchedCore -Indent '  ') }
+        ) -Label 'user_input_skip'
 
-        $agentRespAnchor = Resolve-OverlayUnicode (@(
-            '    // \u8df3\u8fc7\u56de\u590d\u6b63\u6587\uff08\u4fdd\u7559\u63a7\u4ef6\u3001\u6298\u53e0\u6b65\u9aa4\u680f\u3001\u53d8\u66f4\u6982\u89c8\u4e0e\u7cfb\u7edf\u63d0\u793a\u5361\u7247\uff09',
-            '    const agentResponse = element.closest(''[aria-label="Agent response"], [aria-label="\u667a\u80fd\u4f53\u56de\u590d"]'');',
-            '    if (agentResponse) {',
-            '      if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;',
-            '      const isInteractive = element.closest(''button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header'');'
+        $agentRespAnchorCore = Resolve-OverlayUnicode (@(
+            '// \u8df3\u8fc7\u56de\u590d\u6b63\u6587\uff08\u4fdd\u7559\u63a7\u4ef6\u3001\u6298\u53e0\u6b65\u9aa4\u680f\u3001\u53d8\u66f4\u6982\u89c8\u4e0e\u7cfb\u7edf\u63d0\u793a\u5361\u7247\uff09',
+            'const agentResponse = element.closest(''[aria-label="Agent response"], [aria-label="\u667a\u80fd\u4f53\u56de\u590d"]'');',
+            'if (agentResponse) {',
+            '  if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;',
+            '  const isInteractive = element.closest(''button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cleared-step-notice"], .files-changed-header'');'
         ) -join "`n")
-        $agentRespPatched = Resolve-OverlayUnicode (@(
-            '    const userStep = element.closest(''[data-testid="user-input-step"], [aria-label="User message"], [aria-label="\u7528\u6237\u6d88\u606f"]'');',
-            '    if (userStep) {',
-            '      if (node.nodeType === Node.ELEMENT_NODE && element === userStep) return false;',
-            '      if (!element.closest(''[data-testid="user-message-actions"], [data-screenshot-volatile], button, [role="button"]'')) return true;',
-            '    }',
+        $agentRespPatchedCore = Resolve-OverlayUnicode (@(
+            'const userStep = element.closest(''[data-testid="user-input-step"], [aria-label="User message"], [aria-label="\u7528\u6237\u6d88\u606f"]'');',
+            'if (userStep) {',
+            '  if (node.nodeType === Node.ELEMENT_NODE && element === userStep) return false;',
+            '  if (!element.closest(''[data-testid="user-message-actions"], [data-screenshot-volatile], button, [role="button"]'')) return true;',
+            '}',
             '',
-            '    // \u8df3\u8fc7\u56de\u590d\u6b63\u6587\uff08\u4fdd\u7559\u63a7\u4ef6\u3001\u6298\u53e0\u6b65\u9aa4\u680f\u3001\u6d88\u606f\u64cd\u4f5c\u65f6\u95f4\u680f\u3001\u53d8\u66f4\u6982\u89c8\u4e0e\u7cfb\u7edf\u63d0\u793a\u5361\u7247\uff09',
-            '    const agentResponse = element.closest(''[aria-label="Agent response"], [aria-label="\u667a\u80fd\u4f53\u56de\u590d"]'');',
-            '    if (agentResponse) {',
-            '      if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;',
-            '      const isInteractive = element.closest(''button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cascade-system-message-toolbar"], [data-screenshot-volatile], [data-testid="cleared-step-notice"], .files-changed-header'');'
+            '// \u8df3\u8fc7\u56de\u590d\u6b63\u6587\uff08\u4fdd\u7559\u63a7\u4ef6\u3001\u6298\u53e0\u6b65\u9aa4\u680f\u3001\u6d88\u606f\u64cd\u4f5c\u65f6\u95f4\u680f\u3001\u53d8\u66f4\u6982\u89c8\u4e0e\u7cfb\u7edf\u63d0\u793a\u5361\u7247\uff09',
+            'const agentResponse = element.closest(''[aria-label="Agent response"], [aria-label="\u667a\u80fd\u4f53\u56de\u590d"]'');',
+            'if (agentResponse) {',
+            '  if (node.nodeType === Node.ELEMENT_NODE && element === agentResponse) return false;',
+            '  const isInteractive = element.closest(''button, [role="button"], [class*="action"], [class*="button-container"], [data-testid="cascade-system-message-toolbar"], [data-screenshot-volatile], [data-testid="cleared-step-notice"], .files-changed-header'');'
         ) -join "`n")
-        $js = Replace-Once -Text $js -Target $agentRespAnchor -Replacement $agentRespPatched -Label 'agent_resp_skip'
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{ Target = (Add-LineIndent -Text $agentRespAnchorCore -Indent '    '); Replacement = (Add-LineIndent -Text $agentRespPatchedCore -Indent '    ') },
+            @{ Target = (Add-LineIndent -Text $agentRespAnchorCore -Indent '  ');   Replacement = (Add-LineIndent -Text $agentRespPatchedCore -Indent '  ') }
+        ) -Label 'agent_resp_skip'
 
-        $containerTarget = '    ''.antigravity-welcome-container'','
-        $containerPatched = "    '.antigravity-welcome-container',`n    '[data-testid=""home-greeting""]',"
-        $js = Replace-Once -Text $js -Target $containerTarget -Replacement $containerPatched -Label 'container_sel'
+        $js = Replace-FirstMatch -Text $js -Variants @(
+            @{ Target = "`n    '.antigravity-welcome-container',"; Replacement = "`n    '.antigravity-welcome-container',`n    '[data-testid=""home-greeting""]'," },
+            @{ Target = "`n  '.antigravity-welcome-container',";   Replacement = "`n  '.antigravity-welcome-container',`n  '[data-testid=""home-greeting""]'," }
+        ) -Label 'container_sel'
 
         $js = Replace-Once -Text $js -Target "    flushScheduler?.cancel();`n    restoreIdeNlsMessages();`n    removePreferenceSync?.();" -Replacement "    flushScheduler?.cancel();`n    clearTitleTimers();`n    restoreIdeNlsMessages();`n    removePreferenceSync?.();" -Label 'cleanup_timers'
 
