@@ -48,7 +48,8 @@ function fixture() {
   const nodes = [label,file,greeting,ago,tooltip,user,code,input,title,response,prose,button];
   const document = {
     readyState: 'complete', documentElement:{lang:'en'},
-    createTreeWalker() { let i = 0; return {nextNode: () => nodes[i++] || null}; }
+    createTreeWalker() { let i = 0; return {nextNode: () => nodes[i++] || null}; },
+    addEventListener() {}, removeEventListener() {}
   };
   const callbacks = [];
   const window = {_VSCODE_NLS_MESSAGES:['Settings','unlisted string','{0}']};

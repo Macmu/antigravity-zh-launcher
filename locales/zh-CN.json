@@ -591,7 +591,13 @@
     "Build on Google's developer platforms, including Android, Chrome, Gemini, and Google Cloud.": "基于 Android、Chrome、Gemini 与 Google Cloud 等 Google 开发者平台构建应用。",
     "Build on Google’s developer platforms, including Android, Chrome, Gemini, and Google Cloud.": "基于 Android、Chrome、Gemini 与 Google Cloud 等 Google 开发者平台构建应用。",
     "Build": "构建",
-    "+ Add": "+ 添加"
+    "+ Add": "+ 添加",
+    "Dismiss suggestion": "忽略建议",
+    "System UI": "系统界面",
+    "Sort and filter conversations": "排序并筛选会话",
+    "Analyze user trends and retention cohorts": "分析用户趋势与留存队列",
+    "Build a dashboard from my sheet": "基于我的表格生成看板",
+    "Check a BigQuery table for anomalies": "检查 BigQuery 表中的异常"
   },
   "greetings": [
     "你好，{name}，今天想完成什么？",
