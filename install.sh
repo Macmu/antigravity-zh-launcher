@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO_RAW_BASE="${AGY_ZH_REPO_RAW:-https://raw.githubusercontent.com/guuguo/antigravity-zh-launcher/main}"
+REPO_RAW_BASE="${AGY_ZH_REPO_RAW:-https://raw.githubusercontent.com/Macmu/antigravity-zh-launcher/main}"
 LANG_CODE="zh-CN"
 UPDATE_ENGINE=false
 CREATE_SHORTCUT=true
