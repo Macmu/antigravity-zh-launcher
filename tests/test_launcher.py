@@ -71,6 +71,8 @@ class LauncherTests(unittest.TestCase):
         self.assertIn('CreateNoWindow', ps1)
         self.assertIn('Write-AgyLog', ps1)
         self.assertIn('Focus-VisibleWindowForPids', ps1)
+        self.assertIn('falling back to in-process watcher', ps1)
+        self.assertIn('Start-CdpWatchLoop -GuiMode $true -FixedPort $targetPort -LaunchApp $needLaunch -QuietConsole $false', ps1)
         self.assertIn(
             'https://raw.githubusercontent.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay.js',
             ps1,

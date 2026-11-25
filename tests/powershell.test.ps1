@@ -14,6 +14,7 @@ if ($psLauncher -notmatch 'DnsSafeHost') { throw 'Missing IPv6 DnsSafeHost fix i
 if ($psLauncher -notmatch 'CreateNoWindow') { throw 'Missing detached CreateNoWindow watcher launch in bin/agy-zh.ps1' }
 if ($psLauncher -match '\.Split\(@\(') { throw 'PowerShell 5.1 String.Split(string[], StringSplitOptions) overload regression in bin/agy-zh.ps1' }
 if ($psLauncher -match '&\s+\$drainState\b' -or $psLauncher -notmatch '\.\s+\$drainState\b') { throw 'Child-scope $drainState invocation regression in bin/agy-zh.ps1' }
+if ($psLauncher -notmatch 'falling back to in-process watcher') { throw 'Missing in-process watcher fallback for policy-blocked child spawn in bin/agy-zh.ps1' }
 if ($psLauncher -notmatch 'https://raw\.githubusercontent\.com/yuexps/Antigravity-Hans/main/resources/antigravity-hans-overlay\.js') {
     throw 'Missing updated resources/antigravity-hans-overlay.js URL in bin/agy-zh.ps1'
 }

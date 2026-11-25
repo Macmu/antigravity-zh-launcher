@@ -1077,10 +1077,31 @@ function Start-GuiManagedLaunch {
     $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 
     $watcherProc = $null
+    $fallbackInProcess = $false
+    $spawnError = ''
     try {
-        $watcherProc = [System.Diagnostics.Process]::Start($psi)
-        if ($null -eq $watcherProc) {
-            throw (Resolve-ZhText '\u65e0\u6cd5\u542f\u52a8\u540e\u53f0\u6c49\u5316\u76d1\u89c6\u5668\u8fdb\u7a0b\u3002')
+        try {
+            $watcherProc = [System.Diagnostics.Process]::Start($psi)
+        } catch {
+            $ex = $_.Exception
+            while ($null -ne $ex.InnerException) { $ex = $ex.InnerException }
+            $spawnError = $ex.Message
+            $fallbackInProcess = $true
+        }
+        if (-not $fallbackInProcess -and $null -eq $watcherProc) {
+            $spawnError = Resolve-ZhText '\u65e0\u6cd5\u542f\u52a8\u540e\u53f0\u6c49\u5316\u76d1\u89c6\u5668\u8fdb\u7a0b\u3002'
+            $fallbackInProcess = $true
+        }
+        if ($fallbackInProcess) {
+            Write-AgyLog -Level 'WARN' -Message "Background watcher spawn blocked ($spawnError); falling back to in-process watcher."
+            Write-Host "$TagWarn $(Resolve-ZhText '\u68c0\u6d4b\u5230\u7cfb\u7edf\u7b56\u7565\u6216\u5b89\u5168\u8f6f\u4ef6\u9650\u5236\u540e\u53f0\u5b50\u8fdb\u7a0b\u542f\u52a8\uff0c\u5df2\u81ea\u52a8\u5207\u6362\u4e3a\u5f53\u524d\u7a97\u53e3\u76f4\u63a5\u8fd0\u884c\u3002')" -ForegroundColor Yellow
+            Write-Host "      $(Resolve-ZhText '\uff08\u6b64\u6a21\u5f0f\u4e0b\u8bf7\u5c06\u672c\u7a97\u53e3\u6700\u5c0f\u5316\u4fdd\u6301\u8fd0\u884c\uff0c\u5173\u95ed\u672c\u7a97\u53e3\u4f1a\u505c\u6b62\u4e2d\u6587\u76d1\u89c6\uff09')" -ForegroundColor DarkGray
+            Write-Host "      $(Resolve-ZhText '\u65e5\u5fd7\u6587\u4ef6'): $LogFile" -ForegroundColor DarkGray
+            if (Test-Path $stateFile) {
+                Remove-Item -Force -Path $stateFile -ErrorAction SilentlyContinue
+            }
+            Start-CdpWatchLoop -GuiMode $true -FixedPort $targetPort -LaunchApp $needLaunch -QuietConsole $false
+            return
         }
 
         $startTime = [DateTime]::UtcNow
