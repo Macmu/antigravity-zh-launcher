@@ -132,3 +132,15 @@ console.log('PASS language switch ja -> ko -> original');
   assert.equal(early.label.nodeValue, 'Settings');
   console.log('PASS early-document null documentElement guard: zh-CN');
 }
+
+{
+  // 不换行空格：上游部分模板用 \u00A0 分隔词元，折叠后应与普通空格同样命中
+  const locale = JSON.parse(fs.readFileSync(path.join(root, 'locales/zh-CN.json'), 'utf8'));
+  const key = Object.keys(locale.phrases).find(k => k.includes(' ') && !k.includes('{'));
+  assert.ok(key, 'zh-CN 词库应包含多词短语');
+  const f = fixture();
+  f.label.nodeValue = key.replace(/ /g, '\u00A0');
+  inject(f, 'zh-CN');
+  assert.equal(f.label.nodeValue, locale.phrases[key]);
+  console.log('PASS non-breaking space folding: zh-CN ' + JSON.stringify(key));
+}
